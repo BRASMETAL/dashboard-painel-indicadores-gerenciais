@@ -1,0 +1,1735 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Brasmetal — Painel Executivo</title>
+<style>
+  :root{
+    --bg:#0a0f1a; --panel:#131b2c; --panel-2:#182236; --panel-grad:#0f1729;
+    --line:#26324a; --line-soft:#1c263a;
+    --ink:#eef1f7; --ink-dim:#8d9bb8;
+    --amber:#f0b45e; --green:#4fd399; --red:#f0715a; --blue:#6a9bff; --purple:#d68bff;
+    --mono: 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;color:var(--ink);
+    font-family:-apple-system,'Segoe UI',Inter,Arial,sans-serif;
+    background:
+      radial-gradient(1100px 600px at 12% -10%, rgba(106,155,255,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(214,139,255,.07), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+  }
+  body{padding:28px 32px 60px;}
+  .masthead{display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+  .masthead h1{font-size:20px;letter-spacing:.01em;margin:0 0 4px;font-weight:700;
+    background:linear-gradient(90deg,#fff,#c7d3ea 65%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .masthead .eyebrow{font-family:var(--mono);font-size:11px;color:var(--amber);
+    letter-spacing:.16em;text-transform:uppercase;margin-bottom:6px;}
+  .masthead .meta{font-size:12px;color:var(--ink-dim);}
+  .controls{display:flex;gap:10px;align-items:center;}
+  select{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset;}
+
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+  .tab-btn{background:none;border:none;color:var(--ink-dim);font-size:13px;font-family:inherit;
+    padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.01em;
+    transition:color .15s ease;}
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{color:var(--ink);border-bottom-color:var(--amber);font-weight:600;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .kpi{position:relative;background:linear-gradient(180deg, var(--panel), var(--panel-grad));
+    border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    box-shadow:0 8px 24px -12px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.02) inset;
+    overflow:hidden;}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg, var(--blue), var(--purple));opacity:.55;}
+  .kpi .label{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;}
+  .kpi .value{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1.15;letter-spacing:-.01em;}
+  .kpi .sub{font-size:12px;margin-top:6px;color:var(--ink-dim);}
+  .kpi .sub.up{color:var(--green);} .kpi .sub.down{color:var(--red);} .kpi .sub.warn{color:var(--amber);}
+
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:16px;}
+  .grid.thirds{grid-template-columns:1fr 1fr 1fr;}
+  .grid.halves{grid-template-columns:1fr 1fr;}
+  .panel{background:linear-gradient(175deg, var(--panel), var(--panel-grad));
+    border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px;
+    box-shadow:0 10px 30px -16px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.015) inset;
+    position:relative;}
+  .panel h2{font-size:13px;margin:0 0 4px;font-weight:700;letter-spacing:.01em;}
+  .panel .desc{font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;}
+  .chart-wrap{position:relative;width:100%;}
+  .chart-wrap svg{width:100%;height:auto;display:block;overflow:visible;}
+  .legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;}
+  .legend span{font-size:11px;color:var(--ink-dim);display:flex;align-items:center;gap:5px;}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block;box-shadow:0 0 8px currentColor;}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:right;font-weight:600;color:var(--ink-dim);font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.05em;padding:8px 8px;border-bottom:1px solid var(--line);}
+  th:first-child,td:first-child{text-align:left;}
+  td{text-align:right;padding:8px 8px;border-bottom:1px solid var(--line-soft);font-family:var(--mono);}
+  tr:last-child td{border-bottom:none;}
+  tbody tr:hover td{background:rgba(255,255,255,.02);}
+  td.pos{color:var(--green);} td.neg{color:var(--red);}
+  td.warn-cell{color:var(--amber);}
+  .saldo-row td{font-weight:700;}
+
+  .footer-note{margin-top:20px;font-size:11.5px;color:var(--ink-dim);border-top:1px solid var(--line);
+    padding-top:14px;line-height:1.6;}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;
+    background:#26324a;color:var(--ink-dim);margin-left:6px;}
+  .badge.partial{background:rgba(240,180,94,.14);color:var(--amber);border:1px solid rgba(240,180,94,.3);}
+  .badge.forecast{background:#182236;color:var(--blue);border:1px solid var(--line);}
+  .bar-label{font-size:10px;fill:var(--ink-dim);font-family:var(--mono);}
+  .axis-line{stroke:var(--line-soft);stroke-width:1;stroke-dasharray:2,3;}
+
+  @media (max-width:900px){
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+    .grid, .grid.thirds, .grid.halves{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div>
+    <div class="eyebrow">Brasmetal Locação de Equipamentos</div>
+    <h1>Painel Executivo</h1>
+    <div class="meta" id="asof">—</div>
+  </div>
+  <div class="controls">
+    <button id="btnAtualizar" style="background:#5b8def;color:#fff;border:none;border-radius:8px;
+      padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;margin-right:6px;">
+      ↻ Atualizar
+    </button>
+    <button id="btnFonteDados" title="Configurar fonte de dados (Google Sheets em tempo real)"
+      style="background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;
+      width:36px;height:36px;font-size:16px;cursor:pointer;margin-right:10px;line-height:1;">
+      🔄
+    </button>
+    <select id="monthSelect"></select>
+  </div>
+</div>
+<div id="updateStatus" style="font-size:12px;color:var(--ink-dim);margin:-14px 0 10px;"></div>
+
+<div class="panel" id="painelFonteDados" style="margin-bottom:18px;padding:14px 18px;display:none;">
+  <div style="font-size:12px;font-weight:700;letter-spacing:.02em;margin-bottom:4px;">
+    GOOGLE SHEETS (TEMPO REAL, JSONP DIRETO)
+  </div>
+  <div style="font-size:11.5px;color:var(--ink-dim);margin-bottom:10px;">
+    Cole a URL de implantação (/exec) do Apps Script Web App do painel. A carga é feita via JSONP
+    (tag <code>&lt;script&gt;</code> dinâmica) — não é bloqueado por CORS, mesmo com o arquivo
+    aberto localmente (<code>file:///</code>), e sem nenhum proxy ou serviço de terceiros: o
+    navegador conecta direto ao Apps Script. A URL fica salva neste navegador — só precisa colar
+    uma vez.
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <input id="appsScriptUrlInput" type="text" placeholder="https://script.google.com/macros/s/SEU_ID/exec"
+      value="https://script.google.com/macros/s/AKfycbzWVFumu21aYbm8UhCvMfK6RJL1Fy3YlbmMneAblSCBwkcioYYcIcoVP_KXcAIeRDh9iQ/exec"
+      style="flex:1;min-width:280px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+      border-radius:8px;padding:8px 12px;font-size:12.5px;font-family:var(--mono);">
+    <button id="btnSalvarUrl" style="background:#4fd399;color:#0a0f1a;border:none;border-radius:8px;
+      padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;">
+      Atualizar Dados em Tempo Real
+    </button>
+    <a id="testarLinkNovaAba" href="#" target="_blank" rel="noopener"
+      style="font-size:12px;color:var(--blue);white-space:nowrap;">Testar link em nova aba</a>
+  </div>
+  <div id="urlSalvaStatus" style="font-size:11px;color:var(--ink-dim);margin-top:8px;"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="financeiro">Financeiro</button>
+  <button class="tab-btn" data-tab="comercial">Comercial</button>
+  <button class="tab-btn" data-tab="operacional">Operacional</button>
+</div>
+
+<!-- ===================== FINANCEIRO ===================== -->
+<div class="tab-panel active" id="tab-financeiro">
+  <div class="kpi-row" id="kpiFin" style="grid-template-columns:repeat(5,1fr);"></div>
+  <div class="panel">
+    <h2>Resultado semanal por loja</h2>
+    <div class="desc">Mês selecionado no filtro acima — resultado da semana ao lado da meta semanal, por loja. Saldo final colorido conforme a proximidade da meta mensal.</div>
+    <table id="tableWeeklyRevenue">
+      <thead><tr id="theadWeeklyRevenue"><th style="text-align:left;">Loja</th></tr></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Evolução mensal — faturamento total</h2>
+    <div class="desc">Realizado x meta consolidada, todas as lojas, Jan–Ago.</div>
+    <div class="chart-wrap" id="chartRevTrend"></div>
+  </div>
+  <div class="panel">
+    <h2>Inadimplência semanal vs. meta financeira</h2>
+    <div class="desc">Meta financeira semanal (mesma da planilha) comparada ao valor em inadimplência apurado na semana, por loja. Os valores de inadimplência da planilha parecem ser saldo acumulado, não só o gerado na semana — o crescimento ao longo dos meses é consistente com isso; vale confirmar a leitura antes de usar em decisão.</div>
+    <div class="chart-wrap" id="chartInadimplencia" style="margin-bottom:14px;"></div>
+    <table id="tableInadimplencia">
+      <thead><tr><th style="text-align:left;">Semana</th><th>Guarapari (leve)</th><th>Guarapari (pesada)</th><th>Serra</th><th>Vila Velha</th></tr></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Resumo mensal — financeiro</h2>
+    <div class="desc">Base para a reunião semanal de resultados.</div>
+    <table id="tableFin">
+      <thead><tr><th style="text-align:left;">Mês</th><th>Faturamento total</th><th>Meta total</th><th>Desvio</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== COMERCIAL ===================== -->
+<div class="tab-panel" id="tab-comercial">
+  <div class="kpi-row" id="kpiCom"></div>
+  <div class="panel">
+    <h2>Resultado semanal por loja</h2>
+    <div class="desc">Mesma lógica do painel Financeiro: número de contratos e valor fechado por semana, por loja, comparado à meta do funil comercial. A meta só existe na planilha a partir de fevereiro; a divisão de Guarapari em leve/pesada segue a posição da meta na planilha — vale confirmar se algum número parecer fora do esperado.</div>
+    <table id="tableContractsWeekly">
+      <thead><tr id="theadContractsWeekly"><th style="text-align:left;">Loja</th></tr></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Funil — contatos e oportunidades criadas</h2>
+    <div class="desc">Evolução mensal, Jan–Ago.</div>
+    <div class="chart-wrap" id="chartFunilCriadas"></div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <h2>Contratos fechados (linha leve)</h2>
+      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.).</div>
+      <div class="chart-wrap" id="chartContratos"></div>
+    </div>
+    <div class="panel">
+      <h2>Contratos fechados (linha pesada)</h2>
+      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.).</div>
+      <div class="chart-wrap" id="chartContratosPesada"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Taxa de conversão</h2>
+    <div class="desc">Contratos fechados ÷ oportunidades criadas, por mês.</div>
+    <div class="chart-wrap" id="chartConversao"></div>
+  </div>
+  <div class="panel">
+    <h2>Conversão comercial por loja</h2>
+    <div class="desc">Linha leve: contratos fechados ÷ oportunidades da loja. Linha pesada (só Guarapari): contratos fechados ÷ propostas — só aparece quando há propostas suficientes para o cálculo fazer sentido (nos outros meses, mais contratos fecham do que propostas formais são feitas).</div>
+    <div class="grid thirds">
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Guarapari</h3>
+        <div class="chart-wrap" id="chartConvGuarapari"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Serra</h3>
+        <div class="chart-wrap" id="chartConvSerra"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Vila Velha</h3>
+        <div class="chart-wrap" id="chartConvVilaVelha"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Cadastros de clientes</h2>
+    <div class="desc">Novos cadastros realizados, por mês.</div>
+    <div class="chart-wrap" id="chartCadastros"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px;">
+    <h2>Ranking de vendedores</h2>
+    <div class="desc">Mês selecionado no filtro acima — um ranking por linha leve, outro por linha pesada, cada um ordenado pelo seu próprio valor.</div>
+    <div class="grid">
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve</h3>
+        <div class="chart-wrap" id="chartRankingLeve"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha pesada</h3>
+        <div class="chart-wrap" id="chartRankingPesada"></div>
+      </div>
+    </div>
+    <table id="tableRanking" style="margin-top:16px;">
+      <thead><tr><th style="text-align:left;">#</th><th style="text-align:left;">Vendedor</th><th>Contratos leve</th><th>Valor leve</th><th>Contratos pesada</th><th>Valor pesada</th><th>Valor total</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Resumo mensal — comercial</h2>
+    <div class="desc">Base para a reunião semanal de resultados.</div>
+    <table id="tableCom">
+      <thead><tr><th style="text-align:left;">Mês</th><th>Contatos</th><th>Oport. criadas</th><th>Ganhas</th><th>Perdidas</th><th>Conversão</th><th>Contratos fechados</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== OPERACIONAL ===================== -->
+<div class="tab-panel" id="tab-operacional">
+  <div class="kpi-row" id="kpiOp" style="grid-template-columns:repeat(3,1fr);"></div>
+  <div class="panel">
+    <h2>Máquinas em manutenção — semana a semana vs. meta</h2>
+    <div class="desc">Quanto menor, melhor: o objetivo é fechar o mês com o mínimo de máquinas em manutenção. Verde = na meta ou abaixo; âmbar = até 10% acima; vermelho = mais de 10% acima. Meta só existe na planilha a partir de maio.</div>
+    <table id="tableManutWeekly">
+      <thead><tr id="theadManutWeekly"><th style="text-align:left;">Loja</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Meta de redução vs. real — máquinas em manutenção (leve)</h2>
+    <div class="desc">Plano de redução Mai–Dez (meta, tracejado) x apurado (real, sólido), por loja. Passe o mouse nos pontos para ver o valor exato de cada linha.</div>
+    <div class="grid thirds">
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Guarapari</h3>
+        <div class="chart-wrap" id="chartMetaGuarapari"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Serra</h3>
+        <div class="chart-wrap" id="chartMetaSerra"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Vila Velha</h3>
+        <div class="chart-wrap" id="chartMetaVilaVelha"></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <h2>Ocupação da frota (leve)</h2>
+      <div class="desc">Ocupação bruta (alugadas ÷ total da frota leve) por unidade, última semana do mês. Veja o cálculo completo — bruta e líquida — nos quadrantes acima.</div>
+      <div class="chart-wrap" id="chartFleet"></div>
+    </div>
+  </div>
+  <div class="grid thirds">
+    <div class="panel">
+      <h2>Manutenções corretivas</h2>
+      <div class="desc">Total mensal, todas as unidades.</div>
+      <div class="chart-wrap" id="chartMaint"></div>
+    </div>
+    <div class="panel">
+      <h2>Ordens de serviço abertas</h2>
+      <div class="desc">Posição no fechamento do mês (soma da última semana lançada de cada loja) — não é acumulado das semanas.</div>
+      <div class="chart-wrap" id="chartOS"></div>
+    </div>
+    <div class="panel">
+      <h2>Máquinas em manutenção — real</h2>
+      <div class="desc">Última semana do mês, por unidade.</div>
+      <div class="chart-wrap" id="chartManutReal"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Resultado semanal por loja</h2>
+    <div class="desc">Mês selecionado no filtro acima — OS abertas e manutenções corretivas, semana a semana, por loja.</div>
+    <div class="chart-wrap" id="chartWeeklyOp" style="margin-bottom:14px;"></div>
+    <table id="tableWeeklyOp">
+      <thead><tr><th style="text-align:left;">Semana</th><th>Guarapari · OS</th><th>Guarapari · Corretivas</th><th>Serra · OS</th><th>Serra · Corretivas</th><th>Vila Velha · OS</th><th>Vila Velha · Corretivas</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Resumo mensal — operacional</h2>
+    <div class="desc">Base para a reunião semanal de resultados.</div>
+    <table id="tableOp">
+      <thead><tr><th style="text-align:left;">Mês</th><th>Manut. corretivas</th><th>OS abertas</th><th>Ocupação média frota</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="footer-note">
+  <strong>Fonte:</strong> planilhas "Resultados Financeiros/Comerciais" e "Resultados Operacionais" no Google Drive, alimentação semanal por loja (Guarapari linha leve, Guarapari linha pesada, Serra, Vila Velha).
+  <strong>Leitura dos dados:</strong> janeiro e fevereiro têm preenchimento parcial de frota; agosto está em andamento (semana de 22–31/08 ainda não fechada) — tratado como parcial. A meta de redução de máquinas em manutenção só existe na planilha a partir de maio.
+  <br/>
+  <strong>Atualização:</strong> snapshot gerado a partir das planilhas no momento indicado acima. Não há sincronização automática em segundo plano — peça a atualização na conversa após a alimentação semanal para gerar um novo snapshot. Nenhum dado sai deste arquivo: tudo é renderizado localmente, sem serviços externos.
+</div>
+
+<script>
+// =================================================================
+// DATA
+// =================================================================
+let MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set"];
+let PARTIAL = {"Set": true};
+
+let FIN = {"revenue": {"Serra": [66584.81, 87061, 109113, 86358.5, 75331.63, 127433.4, 93590.23, 116280.9, 13935], "Vila Velha": [87725.02, 83724.99, 95450.07, 97978.46, 96363.94, 121614.58, 124534.55, 108361.31, 38849.75], "Guarapari (leve)": [74431, 79226.64, 94488, 98477, 91764, 104489.14, 93725, 76833, 37815], "Guarapari (pesada)": [582635, 533163.55, 655475, 653547, 621932, 612693.05, 686424, 802563, 188579]}, "meta": {"Serra": [75000, 70000, 70000, 80000, 80000, 85000, 85000, 90000, 90000], "Vila Velha": [85000, 80000, 85000, 85000, 90000, 90000, 90000, 90000, 95000], "Guarapari (leve)": [90000, 85000, 90000, 100000, 110000, 110000, 110000, 115000, 115000], "Guarapari (pesada)": [580000, 580000, 650000, 650000, 650000, 680000, 710000, 710000, 740000]}};
+
+let COM = {"contatos": [1019, 830, 1007, 895, 787, 714, 899, 683, 258], "oportCriadas": [1074, 881, 1243, 1173, 1054, 947, 900, 848, 289], "oportGanhas": [200, 292, 355, 344, 276, 296, 263, 308, 80], "oportPerdidas": [473, 348, 572, 452, 353, 262, 257, 266, 101], "contratosFechados": [398, 367, 428, 388, 360, 389, 387, 417, 141], "cadastros": [143, 107, 127, 112, 96, 146, 129, 127, 55], "propostasLeve": [82, 89, 301, 175, 119, 155, 198, 199, 51], "propostasPesada": [17, 36, 62, 60, 71, 37, 69, 70, 11]};
+
+let OP = {"maintenance": [10, 16, 55, 25, 24, 33, 73, 37, 12], "osOpened": [55, 114, 131, 139, 139, 155, 294, 252, 244], "fleetOccupancy": {"Guarapari": [23.53, 20.96, 20.11, 23.29, 22.22, 20.51, 24.52, 22.42, 19.94], "Serra": [24.85, 29.4, 31.48, 25.43, 30.29, 31.81, 30.31, 23.62, 21.26], "Vila Velha": [40.49, 37.83, 39.02, 46.42, 36.53, 33.13, 32.3, 31.42, 34.98]}, "manutReal": {"Guarapari": [203, 65, 213, 211, 147, 131, 121, 102, 104], "Serra": [249, 224, 235, 326, 256, 129, 89, 59, 68], "Vila Velha": [112, 115, 121, 107, 67, 62, 66, 51, 50]}, "metaMaquinasMeses": ["Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], "metaMaquinas": {"Guarapari": [147, 118, 94, 75, 60, 48, 39, 31], "Serra": [77, 80, 57, 47, 37, 27, 17, 11], "Vila Velha": [90, 78, 66, 54, 42, 30, 18, 10]}};
+
+let WEEKLY_FLEET = {"Guarapari": {"Jan": [{"label": "01/01 a 09/01", "totalLeve": 629, "alugadasLeve": 148, "totalPesada": 1032, "alugadasPesada": 510}, {"label": "10/01 a 16/01", "totalLeve": 629, "alugadasLeve": 148, "totalPesada": 1032, "alugadasPesada": 510}, {"label": "17/01 a 23/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}, {"label": "24/01 a 31/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}], "Fev": [{"label": "01/01 a 06/02", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}, {"label": "07/02 a 13/02", "totalLeve": 634, "alugadasLeve": 142, "totalPesada": 1038, "alugadasPesada": 506}, {"label": "14/02 a 20/02", "totalLeve": 730, "alugadasLeve": 153, "totalPesada": 1038, "alugadasPesada": null}, {"label": "21/02 a 28/02", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}], "Mar": [{"label": "01/03 A 06/03", "totalLeve": 731, "alugadasLeve": 159, "totalPesada": 1038, "alugadasPesada": 552}, {"label": "07/03 a 13/03", "totalLeve": 731, "alugadasLeve": 159, "totalPesada": 1038, "alugadasPesada": 552}, {"label": "14/03 a 20/03", "totalLeve": 731, "alugadasLeve": 141, "totalPesada": 1038, "alugadasPesada": 560}, {"label": "21/03 a 27/03", "totalLeve": 731, "alugadasLeve": 138, "totalPesada": 1038, "alugadasPesada": 583}, {"label": "28/03 a 31/03", "totalLeve": 731, "alugadasLeve": 147, "totalPesada": 1038, "alugadasPesada": 584}], "Abr": [{"label": "01/04 a 10/04", "totalLeve": 730, "alugadasLeve": 135, "totalPesada": 1038, "alugadasPesada": 558}, {"label": "11/04 a 17/04", "totalLeve": 730, "alugadasLeve": 135, "totalPesada": 1038, "alugadasPesada": 558}, {"label": "18/04 a 24/04", "totalLeve": 730, "alugadasLeve": 152, "totalPesada": 1047, "alugadasPesada": 553}, {"label": "25/04 a 30/04", "totalLeve": 730, "alugadasLeve": 170, "totalPesada": 1047, "alugadasPesada": 553}], "Mai": [{"label": "01/05 08/05", "totalLeve": 730, "alugadasLeve": 163, "totalPesada": 1047, "alugadasPesada": 553}, {"label": "09/05 a 15/05", "totalLeve": 730, "alugadasLeve": 166, "totalPesada": 1047, "alugadasPesada": 534}, {"label": "16/05 a 22/05", "totalLeve": 730, "alugadasLeve": 169, "totalPesada": 1047, "alugadasPesada": 552}, {"label": "23/05 a 31/05", "totalLeve": 747, "alugadasLeve": 166, "totalPesada": 1047, "alugadasPesada": 561}], "Jun": [{"label": "01/06 a 05/06", "totalLeve": 747, "alugadasLeve": 172, "totalPesada": 1079, "alugadasPesada": 557}, {"label": "06/06 a 12/06", "totalLeve": 747, "alugadasLeve": 167, "totalPesada": 1089, "alugadasPesada": 563}, {"label": "13/06 a 19/06", "totalLeve": 747, "alugadasLeve": 160, "totalPesada": 1089, "alugadasPesada": 560}, {"label": "20/06 a 26/06", "totalLeve": 747, "alugadasLeve": 154, "totalPesada": 1089, "alugadasPesada": 572}, {"label": "27/06 a 30/06", "totalLeve": 746, "alugadasLeve": 153, "totalPesada": 1105, "alugadasPesada": 587}], "Jul": [{"label": "01/07 a 10/07", "totalLeve": 746, "alugadasLeve": 122, "totalPesada": 1123, "alugadasPesada": 620}, {"label": "11/07 a 17/07", "totalLeve": 746, "alugadasLeve": 143, "totalPesada": 1135, "alugadasPesada": 641}, {"label": "18/07 a 24/07", "totalLeve": 726, "alugadasLeve": 157, "totalPesada": 1128, "alugadasPesada": 633}, {"label": "25/07 a 31/07", "totalLeve": 726, "alugadasLeve": 178, "totalPesada": 1128, "alugadasPesada": 284}], "Ago": [{"label": "01/08 A 07/08", "totalLeve": 726, "alugadasLeve": 163, "totalPesada": 1128, "alugadasPesada": 635}, {"label": "08/08 A 14/08", "totalLeve": 727, "alugadasLeve": 165, "totalPesada": 1128, "alugadasPesada": 631}, {"label": "15/08 A 21/08", "totalLeve": 727, "alugadasLeve": 181, "totalPesada": 1128, "alugadasPesada": 627}, {"label": "22/08 A 31/08", "totalLeve": 727, "alugadasLeve": 163, "totalPesada": 1107, "alugadasPesada": 627}], "Set": [{"label": "01/09 A 04/09", "totalLeve": 727, "alugadasLeve": 137, "totalPesada": 1107, "alugadasPesada": 644}, {"label": "05/09 A 11/09", "totalLeve": 727, "alugadasLeve": 145, "totalPesada": 1107, "alugadasPesada": 627}, {"label": "12/09 A 18/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}, {"label": "19/09 A 25/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}, {"label": "26/09 A 30/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": null, "alugadasPesada": null}]}, "Serra": {"Jan": [{"label": "01/01 a 09/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "10/01 a 16/01", "totalLeve": 515, "alugadasLeve": 128, "totalPesada": 0, "alugadasPesada": 0}, {"label": "17/01 a 23/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "24/01 a 31/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}], "Fev": [{"label": "01/01 a 06/02", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "07/02 a 13/02", "totalLeve": 517, "alugadasLeve": 152, "totalPesada": 0, "alugadasPesada": 0}, {"label": "14/02 a 20/02", "totalLeve": 517, "alugadasLeve": 225, "totalPesada": 0, "alugadasPesada": 0}, {"label": "21/02 a 28/02", "totalLeve": 517, "alugadasLeve": 152, "totalPesada": 0, "alugadasPesada": 0}], "Mar": [{"label": "01/03 A 06/03", "totalLeve": 535, "alugadasLeve": 155, "totalPesada": 0, "alugadasPesada": 0}, {"label": "07/03 a 13/03", "totalLeve": 535, "alugadasLeve": 155, "totalPesada": 0, "alugadasPesada": 0}, {"label": "14/03 a 20/03", "totalLeve": 535, "alugadasLeve": 156, "totalPesada": 0, "alugadasPesada": 0}, {"label": "21/03 a 27/03", "totalLeve": 523, "alugadasLeve": 159, "totalPesada": 0, "alugadasPesada": 0}, {"label": "28/03 a 31/03", "totalLeve": 521, "alugadasLeve": 164, "totalPesada": 0, "alugadasPesada": 0}], "Abr": [{"label": "01/04 a 10/04", "totalLeve": 526, "alugadasLeve": 174, "totalPesada": 0, "alugadasPesada": 0}, {"label": "11/04 a 17/04", "totalLeve": 521, "alugadasLeve": 157, "totalPesada": 0, "alugadasPesada": 0}, {"label": "18/04 a 24/04", "totalLeve": 521, "alugadasLeve": 173, "totalPesada": 0, "alugadasPesada": 0}, {"label": "25/04 a 30/04", "totalLeve": 523, "alugadasLeve": 133, "totalPesada": 0, "alugadasPesada": 0}], "Mai": [{"label": "01/05 08/05", "totalLeve": 523, "alugadasLeve": 234, "totalPesada": 0, "alugadasPesada": 0}, {"label": "09/05 a 15/05", "totalLeve": 525, "alugadasLeve": 171, "totalPesada": 0, "alugadasPesada": 0}, {"label": "16/05 a 22/05", "totalLeve": 525, "alugadasLeve": 166, "totalPesada": 0, "alugadasPesada": 0}, {"label": "23/05 a 31/05", "totalLeve": 525, "alugadasLeve": 159, "totalPesada": 0, "alugadasPesada": 0}], "Jun": [{"label": "01/06 a 05/06", "totalLeve": 525, "alugadasLeve": 165, "totalPesada": 0, "alugadasPesada": 0}, {"label": "06/06 a 12/06", "totalLeve": 525, "alugadasLeve": 159, "totalPesada": 0, "alugadasPesada": 0}, {"label": "13/06 a 19/06", "totalLeve": 525, "alugadasLeve": 162, "totalPesada": 0, "alugadasPesada": 0}, {"label": "20/06 a 26/06", "totalLeve": 525, "alugadasLeve": 170, "totalPesada": 0, "alugadasPesada": 0}, {"label": "27/06 a 30/06", "totalLeve": 525, "alugadasLeve": 167, "totalPesada": 0, "alugadasPesada": 0}], "Jul": [{"label": "01/07 a 10/07", "totalLeve": 524, "alugadasLeve": 160, "totalPesada": 0, "alugadasPesada": 0}, {"label": "11/07 a 17/07", "totalLeve": 524, "alugadasLeve": 140, "totalPesada": 0, "alugadasPesada": 0}, {"label": "18/07 a 24/07", "totalLeve": 507, "alugadasLeve": 146, "totalPesada": 0, "alugadasPesada": 0}, {"label": "25/07 a 31/07", "totalLeve": 508, "alugadasLeve": 154, "totalPesada": 0, "alugadasPesada": 0}], "Ago": [{"label": "01/08 A 07/08", "totalLeve": 508, "alugadasLeve": 150, "totalPesada": 0, "alugadasPesada": 0}, {"label": "08/08 A 14/08", "totalLeve": 508, "alugadasLeve": 135, "totalPesada": 0, "alugadasPesada": 0}, {"label": "15/08 A 21/08", "totalLeve": 508, "alugadasLeve": 127, "totalPesada": 0, "alugadasPesada": 0}, {"label": "22/08 A 31/08", "totalLeve": 508, "alugadasLeve": 120, "totalPesada": 0, "alugadasPesada": 0}], "Set": [{"label": "01/09 A 04/09", "totalLeve": 508, "alugadasLeve": 120, "totalPesada": 0, "alugadasPesada": 0}, {"label": "05/09 A 11/09", "totalLeve": 508, "alugadasLeve": 108, "totalPesada": 0, "alugadasPesada": 0}, {"label": "12/09 A 18/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "19/09 A 25/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "26/09 A 30/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}]}, "Vila Velha": {"Jan": [{"label": "01/01 a 09/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "10/01 a 16/01", "totalLeve": 474, "alugadasLeve": 188, "totalPesada": 0, "alugadasPesada": 0}, {"label": "17/01 a 23/01", "totalLeve": 489, "alugadasLeve": 198, "totalPesada": 0, "alugadasPesada": 0}, {"label": "24/01 a 31/01", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}], "Fev": [{"label": "01/01 a 06/02", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "07/02 a 13/02", "totalLeve": 492, "alugadasLeve": 174, "totalPesada": 0, "alugadasPesada": 0}, {"label": "14/02 a 20/02", "totalLeve": 489, "alugadasLeve": 172, "totalPesada": 0, "alugadasPesada": 0}, {"label": "21/02 a 28/02", "totalLeve": 489, "alugadasLeve": 185, "totalPesada": 0, "alugadasPesada": 0}], "Mar": [{"label": "01/03 A 06/03", "totalLeve": 489, "alugadasLeve": 167, "totalPesada": 0, "alugadasPesada": 0}, {"label": "07/03 a 13/03", "totalLeve": 489, "alugadasLeve": 167, "totalPesada": 0, "alugadasPesada": 0}, {"label": "14/03 a 20/03", "totalLeve": 492, "alugadasLeve": 163, "totalPesada": 0, "alugadasPesada": 0}, {"label": "21/03 a 27/03", "totalLeve": 492, "alugadasLeve": 197, "totalPesada": 0, "alugadasPesada": 0}, {"label": "28/03 a 31/03", "totalLeve": 492, "alugadasLeve": 192, "totalPesada": 0, "alugadasPesada": 0}], "Abr": [{"label": "01/04 a 10/04", "totalLeve": 492, "alugadasLeve": 192, "totalPesada": 0, "alugadasPesada": 0}, {"label": "11/04 a 17/04", "totalLeve": 492, "alugadasLeve": 192, "totalPesada": 0, "alugadasPesada": 0}, {"label": "18/04 a 24/04", "totalLeve": 489, "alugadasLeve": 198, "totalPesada": 0, "alugadasPesada": 0}, {"label": "25/04 a 30/04", "totalLeve": 489, "alugadasLeve": 227, "totalPesada": 0, "alugadasPesada": 0}], "Mai": [{"label": "01/05 08/05", "totalLeve": 491, "alugadasLeve": 195, "totalPesada": 0, "alugadasPesada": 0}, {"label": "09/05 a 15/05", "totalLeve": 491, "alugadasLeve": 202, "totalPesada": 0, "alugadasPesada": 0}, {"label": "16/05 a 22/05", "totalLeve": 491, "alugadasLeve": 173, "totalPesada": 0, "alugadasPesada": 0}, {"label": "23/05 a 31/05", "totalLeve": 490, "alugadasLeve": 179, "totalPesada": 0, "alugadasPesada": 0}], "Jun": [{"label": "01/06 a 05/06", "totalLeve": 490, "alugadasLeve": 175, "totalPesada": 0, "alugadasPesada": 0}, {"label": "06/06 a 12/06", "totalLeve": 490, "alugadasLeve": 171, "totalPesada": 0, "alugadasPesada": 0}, {"label": "13/06 a 19/06", "totalLeve": 490, "alugadasLeve": 188, "totalPesada": 0, "alugadasPesada": 0}, {"label": "20/06 a 26/06", "totalLeve": 490, "alugadasLeve": 177, "totalPesada": 0, "alugadasPesada": 0}, {"label": "27/06 a 30/06", "totalLeve": 489, "alugadasLeve": 162, "totalPesada": 0, "alugadasPesada": 0}], "Jul": [{"label": "01/07 a 10/07", "totalLeve": 480, "alugadasLeve": 140, "totalPesada": 0, "alugadasPesada": 0}, {"label": "11/07 a 17/07", "totalLeve": 485, "alugadasLeve": 173, "totalPesada": 0, "alugadasPesada": 0}, {"label": "18/07 a 24/07", "totalLeve": 485, "alugadasLeve": 169, "totalPesada": 0, "alugadasPesada": 0}, {"label": "25/07 a 31/07", "totalLeve": 486, "alugadasLeve": 157, "totalPesada": 0, "alugadasPesada": 0}], "Ago": [{"label": "01/08 A 07/08", "totalLeve": 486, "alugadasLeve": 142, "totalPesada": 0, "alugadasPesada": 0}, {"label": "08/08 A 14/08", "totalLeve": 487, "alugadasLeve": 155, "totalPesada": 0, "alugadasPesada": 0}, {"label": "15/08 A 21/08", "totalLeve": 487, "alugadasLeve": 145, "totalPesada": 0, "alugadasPesada": 0}, {"label": "22/08 A 31/08", "totalLeve": 487, "alugadasLeve": 153, "totalPesada": 0, "alugadasPesada": 0}], "Set": [{"label": "01/09 A 04/09", "totalLeve": 486, "alugadasLeve": 182, "totalPesada": 0, "alugadasPesada": 0}, {"label": "05/09 A 11/09", "totalLeve": 486, "alugadasLeve": 170, "totalPesada": 0, "alugadasPesada": 0}, {"label": "12/09 A 18/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "19/09 A 25/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}, {"label": "26/09 A 30/09", "totalLeve": null, "alugadasLeve": null, "totalPesada": 0, "alugadasPesada": 0}]}};
+
+// máquinas em manutenção pesada (Guarapari), última semana de cada mês — Serra/Vila Velha não operam linha pesada
+let MANUT_PESADA_REAL = {"Guarapari": [278, 292, 273, 298, 307, 303, 646, 254, 252]};
+
+let WEEKLY_MANUT_MAQUINAS = {"Guarapari": {"Jan": [{"label": "01/01 a 09/01", "value": 203}, {"label": "10/01 a 16/01", "value": 203}, {"label": "17/01 a 23/01", "value": null}, {"label": "24/01 a 31/01", "value": null}], "Fev": [{"label": "01/01 a 06/02", "value": null}, {"label": "07/02 a 13/02", "value": 205}, {"label": "14/02 a 20/02", "value": 65}, {"label": "21/02 a 28/02", "value": null}], "Mar": [{"label": "01/03 A 06/03", "value": 205}, {"label": "07/03 a 13/03", "value": 205}, {"label": "14/03 a 20/03", "value": 208}, {"label": "21/03 a 27/03", "value": 218}, {"label": "28/03 a 31/03", "value": 213}], "Abr": [{"label": "01/04 a 10/04", "value": 211}, {"label": "11/04 a 17/04", "value": 211}, {"label": "18/04 a 24/04", "value": 212}, {"label": "25/04 a 30/04", "value": 211}], "Mai": [{"label": "01/05 08/05", "value": 88}, {"label": "09/05 a 15/05", "value": 88}, {"label": "16/05 a 22/05", "value": 90}, {"label": "23/05 a 31/05", "value": 147}], "Jun": [{"label": "01/06 a 05/06", "value": 150}, {"label": "06/06 a 12/06", "value": 145}, {"label": "13/06 a 19/06", "value": 145}, {"label": "20/06 a 26/06", "value": 147}, {"label": "27/06 a 30/06", "value": 131}], "Jul": [{"label": "01/07 a 10/07", "value": 140}, {"label": "11/07 a 17/07", "value": 130}, {"label": "18/07 a 24/07", "value": 125}, {"label": "25/07 a 31/07", "value": 121}], "Ago": [{"label": "01/08 A 07/08", "value": 109}, {"label": "08/08 A 14/08", "value": 111}, {"label": "15/08 A 21/08", "value": 99}, {"label": "22/08 A 31/08", "value": 102}], "Set": [{"label": "01/09 A 04/09", "value": 104}, {"label": "05/09 A 11/09", "value": 104}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}, "Serra": {"Jan": [{"label": "01/01 a 09/01", "value": null}, {"label": "10/01 a 16/01", "value": 249}, {"label": "17/01 a 23/01", "value": null}, {"label": "24/01 a 31/01", "value": null}], "Fev": [{"label": "01/01 a 06/02", "value": null}, {"label": "07/02 a 13/02", "value": 222}, {"label": "14/02 a 20/02", "value": null}, {"label": "21/02 a 28/02", "value": 224}], "Mar": [{"label": "01/03 A 06/03", "value": 242}, {"label": "07/03 a 13/03", "value": 242}, {"label": "14/03 a 20/03", "value": 241}, {"label": "21/03 a 27/03", "value": 238}, {"label": "28/03 a 31/03", "value": 235}], "Abr": [{"label": "01/04 a 10/04", "value": 228}, {"label": "11/04 a 17/04", "value": 245}, {"label": "18/04 a 24/04", "value": 330}, {"label": "25/04 a 30/04", "value": 326}], "Mai": [{"label": "01/05 08/05", "value": 230}, {"label": "09/05 a 15/05", "value": 236}, {"label": "16/05 a 22/05", "value": 242}, {"label": "23/05 a 31/05", "value": 256}], "Jun": [{"label": "01/06 a 05/06", "value": 90}, {"label": "06/06 a 12/06", "value": 90}, {"label": "13/06 a 19/06", "value": 80}, {"label": "20/06 a 26/06", "value": 115}, {"label": "27/06 a 30/06", "value": 129}], "Jul": [{"label": "01/07 a 10/07", "value": 119}, {"label": "11/07 a 17/07", "value": 101}, {"label": "18/07 a 24/07", "value": 97}, {"label": "25/07 a 31/07", "value": 89}], "Ago": [{"label": "01/08 A 07/08", "value": 65}, {"label": "08/08 A 14/08", "value": 70}, {"label": "15/08 A 21/08", "value": 59}, {"label": "22/08 A 31/08", "value": 59}], "Set": [{"label": "01/09 A 04/09", "value": 61}, {"label": "05/09 A 11/09", "value": 68}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}, "Vila Velha": {"Jan": [{"label": "01/01 a 09/01", "value": null}, {"label": "10/01 a 16/01", "value": 113}, {"label": "17/01 a 23/01", "value": 112}, {"label": "24/01 a 31/01", "value": null}], "Fev": [{"label": "01/01 a 06/02", "value": null}, {"label": "07/02 a 13/02", "value": 132}, {"label": "14/02 a 20/02", "value": 122}, {"label": "21/02 a 28/02", "value": 115}], "Mar": [{"label": "01/03 A 06/03", "value": 129}, {"label": "07/03 a 13/03", "value": 129}, {"label": "14/03 a 20/03", "value": 140}, {"label": "21/03 a 27/03", "value": 124}, {"label": "28/03 a 31/03", "value": 121}], "Abr": [{"label": "01/04 a 10/04", "value": 123}, {"label": "11/04 a 17/04", "value": 123}, {"label": "18/04 a 24/04", "value": 117}, {"label": "25/04 a 30/04", "value": 107}], "Mai": [{"label": "01/05 08/05", "value": 125}, {"label": "09/05 a 15/05", "value": 80}, {"label": "16/05 a 22/05", "value": 124}, {"label": "23/05 a 31/05", "value": 67}], "Jun": [{"label": "01/06 a 05/06", "value": 63}, {"label": "06/06 a 12/06", "value": 62}, {"label": "13/06 a 19/06", "value": 65}, {"label": "20/06 a 26/06", "value": 61}, {"label": "27/06 a 30/06", "value": 62}], "Jul": [{"label": "01/07 a 10/07", "value": 70}, {"label": "11/07 a 17/07", "value": 59}, {"label": "18/07 a 24/07", "value": 62}, {"label": "25/07 a 31/07", "value": 66}], "Ago": [{"label": "01/08 A 07/08", "value": 60}, {"label": "08/08 A 14/08", "value": 51}, {"label": "15/08 A 21/08", "value": 47}, {"label": "22/08 A 31/08", "value": 51}], "Set": [{"label": "01/09 A 04/09", "value": 49}, {"label": "05/09 A 11/09", "value": 50}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}};
+
+// dados semanais por loja, extraídos diretamente das planilhas (estrutura semana a semana)
+let WEEKLY_REVENUE = {"Serra": {"Jan": {"weeks": [{"label": "01/01 a 09/01", "value": 12001.59}, {"label": "10/01 a 16/01", "value": 16265}, {"label": "17/01 a 23/01", "value": 11660}, {"label": "24/01 a 31/01", "value": 26658.22}], "total": 66584.81, "meta_mes": 75000, "media_semana": 18750}, "Fev": {"weeks": [{"label": "01/02 a 06/02", "value": 31232}, {"label": "07/02 a 13/02", "value": 11222}, {"label": "14/02 a 20/02", "value": 15426}, {"label": "21/02 a 28/02", "value": 29181}], "total": 87061, "meta_mes": 70000, "media_semana": 17500}, "Mar": {"weeks": [{"label": "01/03 a 06/03", "value": 13647}, {"label": "07/03 a 13/03", "value": 29666}, {"label": "14/03 a 20/03", "value": 17132}, {"label": "21/03 a 27/03", "value": 35545}, {"label": "28/03 a 31/03", "value": 13123}], "total": 109113, "meta_mes": 70000, "media_semana": 17500}, "Abr": {"weeks": [{"label": "01/04 a 10/04", "value": 35711}, {"label": "11/04 a 17/04", "value": 15282}, {"label": "18/04 a 24/04", "value": 16851.5}, {"label": "25/04 a 30/04", "value": 18514}], "total": 86358.5, "meta_mes": 80000, "media_semana": 20000}, "Mai": {"weeks": [{"label": "01/05 a 08/05", "value": 29854}, {"label": "09/05 a 15/05", "value": 9529}, {"label": "16/05 a 22/05", "value": 16523.5}, {"label": "23/05 a 31/05", "value": 19425.13}], "total": 75331.63, "meta_mes": 80000, "media_semana": 20000}, "Jun": {"weeks": [{"label": "01/06 a 05/06", "value": 34706}, {"label": "06/06 a 12/06", "value": 16381.21}, {"label": "13/06 a 19/06", "value": 12425.19}, {"label": "20/06 a 26/06", "value": 44939}, {"label": "27/06 a 30/06", "value": 18982}], "total": 127433.4, "meta_mes": 85000, "media_semana": 21250}, "Jul": {"weeks": [{"label": "01/07 a 10/07", "value": 18970}, {"label": "11/07 a 17/07", "value": 13228}, {"label": "18/07 a 24/07", "value": 30335.23}, {"label": "25/07 a 31/07", "value": 31057}], "total": 93590.23, "meta_mes": 85000, "media_semana": 21250}, "Ago": {"weeks": [{"label": "01/08 A 07/08", "value": 25425}, {"label": "08/08 A 14/08", "value": 20063}, {"label": "15/08 A 21/08", "value": 18795.5}, {"label": "22/08 A 31/08", "value": 51997.4}], "total": 116280.9, "meta_mes": 90000, "media_semana": 22500}, "Set": {"weeks": [{"label": "01/09 A 04/09", "value": 4568}, {"label": "05/09 A 11/09", "value": 9367}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}], "total": 13935, "meta_mes": 90000, "media_semana": 22500}}, "Vila Velha": {"Jan": {"weeks": [{"label": "01/01 a 09/01", "value": 14641.88}, {"label": "10/01 a 16/01", "value": 24521.94}, {"label": "17/01 a 23/01", "value": 14018.02}, {"label": "24/01 a 31/01", "value": 34543.18}], "total": 87725.02, "meta_mes": 85000, "media_semana": 21250}, "Fev": {"weeks": [{"label": "01/02 a 06/02", "value": 19625.14}, {"label": "07/02 a 13/02", "value": 18167.42}, {"label": "14/02 a 20/02", "value": 15977.66}, {"label": "21/02 a 28/02", "value": 29954.77}], "total": 83724.99, "meta_mes": 80000, "media_semana": 20000}, "Mar": {"weeks": [{"label": "01/03 a 06/03", "value": 24258.69}, {"label": "07/03 a 13/03", "value": 20365.91}, {"label": "14/03 a 20/03", "value": 21928.13}, {"label": "21/03 a 27/03", "value": 16488.34}, {"label": "28/03 a 31/03", "value": 12409}], "total": 95450.07, "meta_mes": 85000, "media_semana": 21250}, "Abr": {"weeks": [{"label": "01/04 a 10/04", "value": 32321.96}, {"label": "11/04 a 17/04", "value": 29646.27}, {"label": "18/04 a 24/04", "value": 19120.92}, {"label": "25/04 a 30/04", "value": 16889.31}], "total": 97978.46, "meta_mes": 85000, "media_semana": 21250}, "Mai": {"weeks": [{"label": "01/05 a 08/05", "value": 15356.92}, {"label": "09/05 a 15/05", "value": 24294.57}, {"label": "16/05 a 22/05", "value": 24480.16}, {"label": "23/05 a 31/05", "value": 32232.29}], "total": 96363.94, "meta_mes": 90000, "media_semana": 22500}, "Jun": {"weeks": [{"label": "01/06 a 05/06", "value": 16659.17}, {"label": "06/06 a 12/06", "value": 20097.31}, {"label": "13/06 a 19/06", "value": 33166.15}, {"label": "20/06 a 26/06", "value": 34301.45}, {"label": "27/06 a 30/06", "value": 17390.5}], "total": 121614.58, "meta_mes": 90000, "media_semana": 22500}, "Jul": {"weeks": [{"label": "01/07 a 10/07", "value": 39031}, {"label": "11/07 a 17/07", "value": 21576}, {"label": "18/07 a 24/07", "value": 26218}, {"label": "25/07 a 31/07", "value": 37709.55}], "total": 124534.55, "meta_mes": 90000, "media_semana": 22500}, "Ago": {"weeks": [{"label": "01/08 A 07/08", "value": 18431.79}, {"label": "08/08 A 14/08", "value": 19167.31}, {"label": "15/08 A 21/08", "value": 31450.02}, {"label": "22/08 A 31/08", "value": 39312.19}], "total": 108361.31, "meta_mes": 90000, "media_semana": 22500}, "Set": {"weeks": [{"label": "01/09 A 04/09", "value": 12463.04}, {"label": "05/09 A 11/09", "value": 26386.71}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}], "total": 38849.75, "meta_mes": 95000, "media_semana": 23750}}, "Guarapari (leve)": {"Jan": {"weeks": [{"label": "01/01 a 09/01", "value": 20849}, {"label": "10/01 a 16/01", "value": 16655}, {"label": "17/01 a 23/01", "value": 17006}, {"label": "24/01 a 31/01", "value": 19921}], "total": 74431, "meta_mes": 90000, "media_semana": 22500}, "Fev": {"weeks": [{"label": "01/02 a 06/02", "value": 17891.64}, {"label": "07/02 a 13/02", "value": 17437}, {"label": "14/02 a 20/02", "value": 21441}, {"label": "21/02 a 28/02", "value": 22457}], "total": 79226.64, "meta_mes": 85000, "media_semana": 21250}, "Mar": {"weeks": [{"label": "01/03 a 06/03", "value": 18926}, {"label": "07/03 a 13/03", "value": 14558}, {"label": "14/03 a 20/03", "value": 23743}, {"label": "21/03 a 27/03", "value": 29430}, {"label": "28/03 a 31/03", "value": 7831}], "total": 94488, "meta_mes": 90000, "media_semana": 22500}, "Abr": {"weeks": [{"label": "01/04 a 10/04", "value": 26099}, {"label": "11/04 a 17/04", "value": 17888}, {"label": "18/04 a 24/04", "value": 35978}, {"label": "25/04 a 30/04", "value": 18512}], "total": 98477, "meta_mes": 100000, "media_semana": 25000}, "Mai": {"weeks": [{"label": "01/05 a 08/05", "value": 16844}, {"label": "09/05 a 15/05", "value": 36627}, {"label": "16/05 a 22/05", "value": 21896}, {"label": "23/05 a 31/05", "value": 16397}], "total": 91764, "meta_mes": 110000, "media_semana": 27500}, "Jun": {"weeks": [{"label": "01/06 a 05/06", "value": 21862}, {"label": "06/06 a 12/06", "value": 23041}, {"label": "13/06 a 19/06", "value": 36098}, {"label": "20/06 a 26/06", "value": 18378.61}, {"label": "27/06 a 30/06", "value": 5109.53}], "total": 104489.14, "meta_mes": 110000, "media_semana": 27500}, "Jul": {"weeks": [{"label": "01/07 a 10/07", "value": 24906}, {"label": "11/07 a 17/07", "value": 26689}, {"label": "18/07 a 24/07", "value": 21238}, {"label": "25/07 a 31/07", "value": 20892}], "total": 93725, "meta_mes": 110000, "media_semana": 27500}, "Ago": {"weeks": [{"label": "01/08 A 07/08", "value": 16922}, {"label": "08/08 A 14/08", "value": 17755}, {"label": "15/08 A 21/08", "value": 21052}, {"label": "22/08 A 31/08", "value": 21104}], "total": 76833, "meta_mes": 115000, "media_semana": 28750}, "Set": {"weeks": [{"label": "01/09 A 04/09", "value": 17827}, {"label": "05/09 A 11/09", "value": 19988}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}], "total": 37815, "meta_mes": 115000, "media_semana": 28750}}, "Guarapari (pesada)": {"Jan": {"weeks": [{"label": "01/01 a 09/01", "value": 138222}, {"label": "10/01 a 16/01", "value": 97008}, {"label": "17/01 a 23/01", "value": 170916}, {"label": "24/01 a 31/01", "value": 176489}], "total": 582635, "meta_mes": 580000, "media_semana": 145000}, "Fev": {"weeks": [{"label": "01/02 a 06/02", "value": 89968.55}, {"label": "07/02 a 13/02", "value": 120667}, {"label": "14/02 a 20/02", "value": 73751}, {"label": "21/02 a 28/02", "value": 248777}], "total": 533163.55, "meta_mes": 580000, "media_semana": 145000}, "Mar": {"weeks": [{"label": "01/03 a 06/03", "value": 60539}, {"label": "07/03 a 13/03", "value": 130175}, {"label": "14/03 a 20/03", "value": 208680}, {"label": "21/03 a 27/03", "value": 177913}, {"label": "28/03 a 31/03", "value": 78168}], "total": 655475, "meta_mes": 650000, "media_semana": 162500}, "Abr": {"weeks": [{"label": "01/04 a 10/04", "value": 165754}, {"label": "11/04 a 17/04", "value": 187013}, {"label": "18/04 a 24/04", "value": 138341}, {"label": "25/04 a 30/04", "value": 162439}], "total": 653547, "meta_mes": 650000, "media_semana": 162500}, "Mai": {"weeks": [{"label": "01/05 a 08/05", "value": 101786}, {"label": "09/05 a 15/05", "value": 187332}, {"label": "16/05 a 22/05", "value": 110355}, {"label": "23/05 a 31/05", "value": 222459}], "total": 621932, "meta_mes": 650000, "media_semana": 162500}, "Jun": {"weeks": [{"label": "01/06 a 05/06", "value": 131533}, {"label": "06/06 a 12/06", "value": 73857}, {"label": "13/06 a 19/06", "value": 147234}, {"label": "20/06 a 26/06", "value": 190102.26}, {"label": "27/06 a 30/06", "value": 69966.79}], "total": 612693.05, "meta_mes": 680000, "media_semana": 170000}, "Jul": {"weeks": [{"label": "01/07 a 10/07", "value": 125309}, {"label": "11/07 a 17/07", "value": 247126}, {"label": "18/07 a 24/07", "value": 119713}, {"label": "25/07 a 31/07", "value": 194276}], "total": 686424, "meta_mes": 710000, "media_semana": 177500}, "Ago": {"weeks": [{"label": "01/08 A 07/08", "value": 173216}, {"label": "08/08 A 14/08", "value": 202808}, {"label": "15/08 A 21/08", "value": 151486}, {"label": "22/08 A 31/08", "value": 275053}], "total": 802563, "meta_mes": 710000, "media_semana": 177500}, "Set": {"weeks": [{"label": "01/09 A 04/09", "value": 124525}, {"label": "05/09 A 11/09", "value": 64054}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}], "total": 188579, "meta_mes": 740000, "media_semana": 185000}}};
+
+let WEEKLY_OPERATIONAL = {"Guarapari": {"Jan": [{"label": "01/01 a 09/01", "corretivas": 5, "os": 51}, {"label": "10/01 a 16/01", "corretivas": 0, "os": 51}, {"label": "17/01 a 23/01", "corretivas": null, "os": null}, {"label": "24/01 a 31/01", "corretivas": null, "os": null}], "Fev": [{"label": "01/01 a 06/02", "corretivas": null, "os": null}, {"label": "07/02 a 13/02", "corretivas": 9, "os": 80}, {"label": "14/02 a 20/02", "corretivas": 4, "os": 89}, {"label": "21/02 a 28/02", "corretivas": null, "os": null}], "Mar": [{"label": "01/03 A 06/03", "corretivas": 10, "os": 83}, {"label": "07/03 a 13/03", "corretivas": 1, "os": 83}, {"label": "14/03 a 20/03", "corretivas": 7, "os": 82}, {"label": "21/03 a 27/03", "corretivas": 1, "os": 78}, {"label": "28/03 a 31/03", "corretivas": 1, "os": 80}], "Abr": [{"label": "01/04 a 10/04", "corretivas": 4, "os": 84}, {"label": "11/04 a 17/04", "corretivas": 0, "os": 84}, {"label": "18/04 a 24/04", "corretivas": 4, "os": 79}, {"label": "25/04 a 30/04", "corretivas": 0, "os": 79}], "Mai": [{"label": "01/05 08/05", "corretivas": 5, "os": 80}, {"label": "09/05 a 15/05", "corretivas": 1, "os": 85}, {"label": "16/05 a 22/05", "corretivas": 0, "os": 73}, {"label": "23/05 a 31/05", "corretivas": 0, "os": 62}], "Jun": [{"label": "01/06 a 05/06", "corretivas": 3, "os": 68}, {"label": "06/06 a 12/06", "corretivas": 2, "os": 64}, {"label": "13/06 a 19/06", "corretivas": 9, "os": 61}, {"label": "20/06 a 26/06", "corretivas": 2, "os": 65}, {"label": "27/06 a 30/06", "corretivas": 0, "os": 70}], "Jul": [{"label": "01/07 a 10/07", "corretivas": 11, "os": 149}, {"label": "11/07 a 17/07", "corretivas": 2, "os": 139}, {"label": "18/07 a 24/07", "corretivas": 2, "os": 132}, {"label": "25/07 a 31/07", "corretivas": 0, "os": 121}], "Ago": [{"label": "01/08 A 07/08", "corretivas": 3, "os": 109}, {"label": "08/08 A 14/08", "corretivas": 3, "os": 111}, {"label": "15/08 A 21/08", "corretivas": 0, "os": 99}, {"label": "22/08 A 31/08", "corretivas": 4, "os": 102}], "Set": [{"label": "01/09 A 04/09", "corretivas": 5, "os": 104}, {"label": "05/09 A 11/09", "corretivas": 1, "os": 104}, {"label": "12/09 A 18/09", "corretivas": null, "os": null}, {"label": "19/09 A 25/09", "corretivas": null, "os": null}, {"label": "26/09 A 30/09", "corretivas": null, "os": null}]}, "Serra": {"Jan": [{"label": "01/01 a 09/01", "corretivas": null, "os": null}, {"label": "10/01 a 16/01", "corretivas": 0, "os": 3}, {"label": "17/01 a 23/01", "corretivas": null, "os": null}, {"label": "24/01 a 31/01", "corretivas": null, "os": null}], "Fev": [{"label": "01/01 a 06/02", "corretivas": null, "os": null}, {"label": "07/02 a 13/02", "corretivas": 0, "os": 29}, {"label": "14/02 a 20/02", "corretivas": 2, "os": 30}, {"label": "21/02 a 28/02", "corretivas": 0, "os": 20}], "Mar": [{"label": "01/03 A 06/03", "corretivas": 5, "os": 38}, {"label": "07/03 a 13/03", "corretivas": 7, "os": 38}, {"label": "14/03 a 20/03", "corretivas": 3, "os": 33}, {"label": "21/03 a 27/03", "corretivas": 2, "os": 3}, {"label": "28/03 a 31/03", "corretivas": 3, "os": 38}], "Abr": [{"label": "01/04 a 10/04", "corretivas": 4, "os": 40}, {"label": "11/04 a 17/04", "corretivas": 0, "os": 40}, {"label": "18/04 a 24/04", "corretivas": 0, "os": 36}, {"label": "25/04 a 30/04", "corretivas": 0, "os": 35}], "Mai": [{"label": "01/05 08/05", "corretivas": 1, "os": 36}, {"label": "09/05 a 15/05", "corretivas": 1, "os": 37}, {"label": "16/05 a 22/05", "corretivas": 0, "os": 37}, {"label": "23/05 a 31/05", "corretivas": 2, "os": 39}], "Jun": [{"label": "01/06 a 05/06", "corretivas": 1, "os": 38}, {"label": "06/06 a 12/06", "corretivas": 1, "os": 39}, {"label": "13/06 a 19/06", "corretivas": 0, "os": 39}, {"label": "20/06 a 26/06", "corretivas": 0, "os": 34}, {"label": "27/06 a 30/06", "corretivas": 0, "os": 33}], "Jul": [{"label": "01/07 a 10/07", "corretivas": 0, "os": 33}, {"label": "11/07 a 17/07", "corretivas": 0, "os": 89}, {"label": "18/07 a 24/07", "corretivas": 0, "os": 106}, {"label": "25/07 a 31/07", "corretivas": 7, "os": 113}], "Ago": [{"label": "01/08 A 07/08", "corretivas": 2, "os": 111}, {"label": "08/08 A 14/08", "corretivas": 4, "os": 116}, {"label": "15/08 A 21/08", "corretivas": 2, "os": 104}, {"label": "22/08 A 31/08", "corretivas": 0, "os": 98}], "Set": [{"label": "01/09 A 04/09", "corretivas": 2, "os": 98}, {"label": "05/09 A 11/09", "corretivas": 0, "os": 84}, {"label": "12/09 A 18/09", "corretivas": null, "os": null}, {"label": "19/09 A 25/09", "corretivas": null, "os": null}, {"label": "26/09 A 30/09", "corretivas": null, "os": null}]}, "Vila Velha": {"Jan": [{"label": "01/01 a 09/01", "corretivas": 1, "os": 1}, {"label": "10/01 a 16/01", "corretivas": 3, "os": 2}, {"label": "17/01 a 23/01", "corretivas": 1, "os": 1}, {"label": "24/01 a 31/01", "corretivas": null, "os": null}], "Fev": [{"label": "01/01 a 06/02", "corretivas": null, "os": null}, {"label": "07/02 a 13/02", "corretivas": 0, "os": 6}, {"label": "14/02 a 20/02", "corretivas": 0, "os": 4}, {"label": "21/02 a 28/02", "corretivas": 1, "os": 5}], "Mar": [{"label": "01/03 A 06/03", "corretivas": 3, "os": 7}, {"label": "07/03 a 13/03", "corretivas": 6, "os": 7}, {"label": "14/03 a 20/03", "corretivas": 2, "os": 8}, {"label": "21/03 a 27/03", "corretivas": 2, "os": 11}, {"label": "28/03 a 31/03", "corretivas": 2, "os": 13}], "Abr": [{"label": "01/04 a 10/04", "corretivas": 5, "os": 19}, {"label": "11/04 a 17/04", "corretivas": 1, "os": 23}, {"label": "18/04 a 24/04", "corretivas": 5, "os": 29}, {"label": "25/04 a 30/04", "corretivas": 2, "os": 25}], "Mai": [{"label": "01/05 08/05", "corretivas": 3, "os": 27}, {"label": "09/05 a 15/05", "corretivas": 6, "os": 33}, {"label": "16/05 a 22/05", "corretivas": 2, "os": 36}, {"label": "23/05 a 31/05", "corretivas": 3, "os": 38}], "Jun": [{"label": "01/06 a 05/06", "corretivas": 1, "os": 31}, {"label": "06/06 a 12/06", "corretivas": 6, "os": 29}, {"label": "13/06 a 19/06", "corretivas": 4, "os": 54}, {"label": "20/06 a 26/06", "corretivas": 4, "os": 52}, {"label": "27/06 a 30/06", "corretivas": 0, "os": 52}], "Jul": [{"label": "01/07 a 10/07", "corretivas": 8, "os": 10}, {"label": "11/07 a 17/07", "corretivas": 17, "os": 107}, {"label": "18/07 a 24/07", "corretivas": 24, "os": 105}, {"label": "25/07 a 31/07", "corretivas": 2, "os": 60}], "Ago": [{"label": "01/08 A 07/08", "corretivas": 2, "os": 56}, {"label": "08/08 A 14/08", "corretivas": 8, "os": 52}, {"label": "15/08 A 21/08", "corretivas": 4, "os": 48}, {"label": "22/08 A 31/08", "corretivas": 5, "os": 52}], "Set": [{"label": "01/09 A 04/09", "corretivas": 4, "os": 56}, {"label": "05/09 A 11/09", "corretivas": 0, "os": null}, {"label": "12/09 A 18/09", "corretivas": null, "os": null}, {"label": "19/09 A 25/09", "corretivas": null, "os": null}, {"label": "26/09 A 30/09", "corretivas": null, "os": null}]}};
+
+let CONTRACTS_ACHIEVED = {"Guarapari": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 7083}, {"label": "10/01 a 16/01", "value": 18055}, {"label": "17/01 a 23/01", "value": 14589}, {"label": "24/01 a 31/01", "value": 12491}], "pesada": [{"label": "01/01 a 09/01", "value": 6100}, {"label": "10/01 a 16/01", "value": 8750}, {"label": "17/01 a 23/01", "value": 3250}, {"label": "24/01 a 31/01", "value": 11970}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 8728}, {"label": "07/02 a 13/02", "value": 10935}, {"label": "14/02 a 20/02", "value": 4545}, {"label": "21/02 a 28/02", "value": 10446}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 60855}, {"label": "21/02 a 28/02", "value": 1900}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 11738}, {"label": "14/03 a 20/03", "value": 8603}, {"label": "21/03 a 27/03", "value": 9534}, {"label": "28/03 a 31/03", "value": 3978}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 2200}, {"label": "21/03 a 27/03", "value": 3250}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 15442}, {"label": "18/04 a 24/04", "value": 11601}, {"label": "25/04 a 30/04", "value": 5143}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 950}, {"label": "25/04 a 30/04", "value": 2480}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 7094}, {"label": "09/05 a 15/05", "value": 8591}, {"label": "16/05 a 22/05", "value": 7129}, {"label": "23/05 a 31/05", "value": 8555}], "pesada": [{"label": "01/05 a 08/05", "value": 27156}, {"label": "09/05 a 15/05", "value": 62415}, {"label": "16/05 a 22/05", "value": 13430}, {"label": "23/05 a 31/05", "value": 3200}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 11273}, {"label": "06/06 a 12/06", "value": 10175}, {"label": "13/06 a 19/06", "value": 7935}, {"label": "20/06 a 26/06", "value": 4961}, {"label": "27/06 a 30/06", "value": 2004}], "pesada": [{"label": "01/06 a 05/06", "value": 19153}, {"label": "06/06 a 12/06", "value": 15150}, {"label": "13/06 a 19/06", "value": 9250}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 12367}, {"label": "11/07 a 17/07", "value": 8379}, {"label": "18/07 a 24/07", "value": 11770}, {"label": "25/07 a 31/07", "value": 8959}], "pesada": [{"label": "01/07 a 10/07", "value": 2550}, {"label": "11/07 a 17/07", "value": 81790}, {"label": "18/07 a 24/07", "value": 50418}, {"label": "25/07 a 31/07", "value": 59194}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 13834}, {"label": "08/08 A 14/08", "value": 10483}, {"label": "15/08 A 21/08", "value": 8517}, {"label": "22/08 A 31/08", "value": 15560}], "pesada": [{"label": "01/08 A 07/08", "value": 66790}, {"label": "08/08 A 14/08", "value": 4693}, {"label": "15/08 A 21/08", "value": 11200}, {"label": "22/08 A 31/08", "value": 7588}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 10440}, {"label": "05/09 A 11/09", "value": 14005}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 80150}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Serra": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 13187}, {"label": "10/01 a 16/01", "value": 21652.85}, {"label": "17/01 a 23/01", "value": 7378}, {"label": "24/01 a 31/01", "value": 9839.5}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 12972.3}, {"label": "07/02 a 13/02", "value": 12216}, {"label": "14/02 a 20/02", "value": 7060}, {"label": "21/02 a 28/02", "value": 14400.55}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 6405}, {"label": "14/03 a 20/03", "value": 9570}, {"label": "21/03 a 27/03", "value": 5681}, {"label": "28/03 a 31/03", "value": 5784}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 8176}, {"label": "18/04 a 24/04", "value": 6036}, {"label": "25/04 a 30/04", "value": 9360}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 14626.85}, {"label": "09/05 a 15/05", "value": 7289}, {"label": "16/05 a 22/05", "value": 8534}, {"label": "23/05 a 31/05", "value": 9420}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 14182}, {"label": "06/06 a 12/06", "value": 16125}, {"label": "13/06 a 19/06", "value": 8732}, {"label": "20/06 a 26/06", "value": 11940}, {"label": "27/06 a 30/06", "value": 0}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 12329}, {"label": "11/07 a 17/07", "value": 12767}, {"label": "18/07 a 24/07", "value": 8347.19}, {"label": "25/07 a 31/07", "value": 10705}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 6594}, {"label": "08/08 A 14/08", "value": 13895}, {"label": "15/08 A 21/08", "value": 6907.5}, {"label": "22/08 A 31/08", "value": 7387}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 3560}, {"label": "05/09 A 11/09", "value": 4885}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Vila Velha": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 10921}, {"label": "10/01 a 16/01", "value": 14687}, {"label": "17/01 a 23/01", "value": 13851}, {"label": "24/01 a 31/01", "value": 16829.42}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 10612}, {"label": "07/02 a 13/02", "value": 16044}, {"label": "14/02 a 20/02", "value": 7728.1}, {"label": "21/02 a 28/02", "value": 16197}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 9821.61}, {"label": "14/03 a 20/03", "value": 11228.8}, {"label": "21/03 a 27/03", "value": 13941}, {"label": "28/03 a 31/03", "value": 5196}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 27416}, {"label": "18/04 a 24/04", "value": 15665}, {"label": "25/04 a 30/04", "value": 9159}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 22899}, {"label": "09/05 a 15/05", "value": 8235}, {"label": "16/05 a 22/05", "value": 16200}, {"label": "23/05 a 31/05", "value": 15393}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 12377}, {"label": "06/06 a 12/06", "value": 8006.5}, {"label": "13/06 a 19/06", "value": 19542}, {"label": "20/06 a 26/06", "value": 7566.5}, {"label": "27/06 a 30/06", "value": 2152}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 13662}, {"label": "11/07 a 17/07", "value": 12155}, {"label": "18/07 a 24/07", "value": 16977}, {"label": "25/07 a 31/07", "value": 8546}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 11378}, {"label": "08/08 A 14/08", "value": 14307}, {"label": "15/08 A 21/08", "value": 17628.4}, {"label": "22/08 A 31/08", "value": 16512}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 13639}, {"label": "05/09 A 11/09", "value": 12132}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}};
+
+let CONTRACTS_COUNT = {"Guarapari": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 37}, {"label": "10/01 a 16/01", "value": 46}, {"label": "17/01 a 23/01", "value": 29}, {"label": "24/01 a 31/01", "value": 52}], "pesada": [{"label": "01/01 a 09/01", "value": 1}, {"label": "10/01 a 16/01", "value": 2}, {"label": "17/01 a 23/01", "value": 1}, {"label": "24/01 a 31/01", "value": 1}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 34}, {"label": "07/02 a 13/02", "value": 38}, {"label": "14/02 a 20/02", "value": 26}, {"label": "21/02 a 28/02", "value": 43}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 4}, {"label": "21/02 a 28/02", "value": 1}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 37}, {"label": "14/03 a 20/03", "value": 44}, {"label": "21/03 a 27/03", "value": 38}, {"label": "28/03 a 31/03", "value": 18}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 2}, {"label": "21/03 a 27/03", "value": 1}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 68}, {"label": "18/04 a 24/04", "value": 34}, {"label": "25/04 a 30/04", "value": 23}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 1}, {"label": "25/04 a 30/04", "value": 1}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 32}, {"label": "09/05 a 15/05", "value": 36}, {"label": "16/05 a 22/05", "value": 34}, {"label": "23/05 a 31/05", "value": 30}], "pesada": [{"label": "01/05 a 08/05", "value": 5}, {"label": "09/05 a 15/05", "value": 7}, {"label": "16/05 a 22/05", "value": 5}, {"label": "23/05 a 31/05", "value": 2}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 27}, {"label": "06/06 a 12/06", "value": 45}, {"label": "13/06 a 19/06", "value": 33}, {"label": "20/06 a 26/06", "value": 28}, {"label": "27/06 a 30/06", "value": 8}], "pesada": [{"label": "01/06 a 05/06", "value": 3}, {"label": "06/06 a 12/06", "value": 3}, {"label": "13/06 a 19/06", "value": 3}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 51}, {"label": "11/07 a 17/07", "value": 28}, {"label": "18/07 a 24/07", "value": 36}, {"label": "25/07 a 31/07", "value": 34}], "pesada": [{"label": "01/07 a 10/07", "value": 1}, {"label": "11/07 a 17/07", "value": 10}, {"label": "18/07 a 24/07", "value": 5}, {"label": "25/07 a 31/07", "value": 6}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 54}, {"label": "08/08 A 14/08", "value": 38}, {"label": "15/08 A 21/08", "value": 41}, {"label": "22/08 A 31/08", "value": 55}], "pesada": [{"label": "01/08 A 07/08", "value": 12}, {"label": "08/08 A 14/08", "value": 2}, {"label": "15/08 A 21/08", "value": 2}, {"label": "22/08 A 31/08", "value": 2}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 30}, {"label": "05/09 A 11/09", "value": 32}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 5}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Serra": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 30}, {"label": "10/01 a 16/01", "value": 25}, {"label": "17/01 a 23/01", "value": 21}, {"label": "24/01 a 31/01", "value": 18}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 21}, {"label": "07/02 a 13/02", "value": 30}, {"label": "14/02 a 20/02", "value": 15}, {"label": "21/02 a 28/02", "value": 32}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 19}, {"label": "14/03 a 20/03", "value": 25}, {"label": "21/03 a 27/03", "value": 18}, {"label": "28/03 a 31/03", "value": 12}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 26}, {"label": "18/04 a 24/04", "value": 20}, {"label": "25/04 a 30/04", "value": 24}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 18}, {"label": "09/05 a 15/05", "value": 25}, {"label": "16/05 a 22/05", "value": 20}, {"label": "23/05 a 31/05", "value": 13}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 29}, {"label": "06/06 a 12/06", "value": 27}, {"label": "13/06 a 19/06", "value": 27}, {"label": "20/06 a 26/06", "value": 26}, {"label": "27/06 a 30/06", "value": 0}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 33}, {"label": "11/07 a 17/07", "value": 21}, {"label": "18/07 a 24/07", "value": 19}, {"label": "25/07 a 31/07", "value": 21}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 18}, {"label": "08/08 A 14/08", "value": 25}, {"label": "15/08 A 21/08", "value": 29}, {"label": "22/08 A 31/08", "value": 17}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 10}, {"label": "05/09 A 11/09", "value": 10}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Vila Velha": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 37}, {"label": "10/01 a 16/01", "value": 41}, {"label": "17/01 a 23/01", "value": 34}, {"label": "24/01 a 31/01", "value": 40}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 26}, {"label": "07/02 a 13/02", "value": 44}, {"label": "14/02 a 20/02", "value": 23}, {"label": "21/02 a 28/02", "value": 42}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 35}, {"label": "14/03 a 20/03", "value": 38}, {"label": "21/03 a 27/03", "value": 34}, {"label": "28/03 a 31/03", "value": 16}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 60}, {"label": "18/04 a 24/04", "value": 35}, {"label": "25/04 a 30/04", "value": 26}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 46}, {"label": "09/05 a 15/05", "value": 35}, {"label": "16/05 a 22/05", "value": 38}, {"label": "23/05 a 31/05", "value": 40}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 36}, {"label": "06/06 a 12/06", "value": 27}, {"label": "13/06 a 19/06", "value": 42}, {"label": "20/06 a 26/06", "value": 29}, {"label": "27/06 a 30/06", "value": 13}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 42}, {"label": "11/07 a 17/07", "value": 33}, {"label": "18/07 a 24/07", "value": 42}, {"label": "25/07 a 31/07", "value": 32}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 38}, {"label": "08/08 A 14/08", "value": 26}, {"label": "15/08 A 21/08", "value": 45}, {"label": "22/08 A 31/08", "value": 31}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 29}, {"label": "05/09 A 11/09", "value": 31}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}};
+let PROPOSTAS_COUNT = {"Guarapari": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}], "pesada": [{"label": "01/01 a 09/01", "value": 1}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 4}, {"label": "24/01 a 31/01", "value": 12}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 4}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 6}], "pesada": [{"label": "01/02 a 06/02", "value": 7}, {"label": "07/02 a 13/02", "value": 5}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 24}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 1}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}], "pesada": [{"label": "01/03 a 06/03", "value": 10}, {"label": "14/03 a 20/03", "value": 13}, {"label": "21/03 a 27/03", "value": 12}, {"label": "28/03 a 31/03", "value": 9}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 5}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}], "pesada": [{"label": "01/04 a 10/04", "value": 25}, {"label": "18/04 a 24/04", "value": 12}, {"label": "25/04 a 30/04", "value": 16}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 3}, {"label": "23/05 a 31/05", "value": 0}], "pesada": [{"label": "01/05 a 08/05", "value": 17}, {"label": "09/05 a 15/05", "value": 20}, {"label": "16/05 a 22/05", "value": 9}, {"label": "23/05 a 31/05", "value": 25}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 5}, {"label": "06/06 a 12/06", "value": 4}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 1}], "pesada": [{"label": "01/06 a 05/06", "value": 14}, {"label": "06/06 a 12/06", "value": 12}, {"label": "13/06 a 19/06", "value": 9}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 2}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 5}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 5}, {"label": "25/07 a 31/07", "value": 1}], "pesada": [{"label": "01/07 a 10/07", "value": 26}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 14}, {"label": "25/07 a 31/07", "value": 29}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 7}, {"label": "08/08 A 14/08", "value": 5}, {"label": "15/08 A 21/08", "value": 5}, {"label": "22/08 A 31/08", "value": 9}], "pesada": [{"label": "01/08 A 07/08", "value": 32}, {"label": "08/08 A 14/08", "value": 17}, {"label": "15/08 A 21/08", "value": 11}, {"label": "22/08 A 31/08", "value": 10}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 2}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 7}, {"label": "05/09 A 11/09", "value": 4}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Serra": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 4}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 10}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 8}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 34}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 38}, {"label": "14/03 a 20/03", "value": 34}, {"label": "21/03 a 27/03", "value": 35}, {"label": "28/03 a 31/03", "value": 16}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 47}, {"label": "18/04 a 24/04", "value": 13}, {"label": "25/04 a 30/04", "value": 10}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 8}, {"label": "09/05 a 15/05", "value": 8}, {"label": "16/05 a 22/05", "value": 2}, {"label": "23/05 a 31/05", "value": 3}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 8}, {"label": "06/06 a 12/06", "value": 10}, {"label": "13/06 a 19/06", "value": 3}, {"label": "20/06 a 26/06", "value": 18}, {"label": "27/06 a 30/06", "value": 7}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 3}, {"label": "11/07 a 17/07", "value": 19}, {"label": "18/07 a 24/07", "value": 22}, {"label": "25/07 a 31/07", "value": 25}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 10}, {"label": "08/08 A 14/08", "value": 15}, {"label": "15/08 A 21/08", "value": 22}, {"label": "22/08 A 31/08", "value": 11}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 9}, {"label": "05/09 A 11/09", "value": 10}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}, "Vila Velha": {"Jan": {"leve": [{"label": "01/01 a 09/01", "value": 8}, {"label": "10/01 a 16/01", "value": 13}, {"label": "17/01 a 23/01", "value": 23}, {"label": "24/01 a 31/01", "value": 24}], "pesada": [{"label": "01/01 a 09/01", "value": 0}, {"label": "10/01 a 16/01", "value": 0}, {"label": "17/01 a 23/01", "value": 0}, {"label": "24/01 a 31/01", "value": 0}]}, "Fev": {"leve": [{"label": "01/02 a 06/02", "value": 11}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 26}], "pesada": [{"label": "01/02 a 06/02", "value": 0}, {"label": "07/02 a 13/02", "value": 0}, {"label": "14/02 a 20/02", "value": 0}, {"label": "21/02 a 28/02", "value": 0}]}, "Mar": {"leve": [{"label": "01/03 a 06/03", "value": 27}, {"label": "14/03 a 20/03", "value": 50}, {"label": "21/03 a 27/03", "value": 12}, {"label": "28/03 a 31/03", "value": 17}], "pesada": [{"label": "01/03 a 06/03", "value": 0}, {"label": "14/03 a 20/03", "value": 0}, {"label": "21/03 a 27/03", "value": 0}, {"label": "28/03 a 31/03", "value": 0}]}, "Abr": {"leve": [{"label": "01/04 a 10/04", "value": 42}, {"label": "18/04 a 24/04", "value": 19}, {"label": "25/04 a 30/04", "value": 11}], "pesada": [{"label": "01/04 a 10/04", "value": 0}, {"label": "18/04 a 24/04", "value": 0}, {"label": "25/04 a 30/04", "value": 0}]}, "Mai": {"leve": [{"label": "01/05 a 08/05", "value": 27}, {"label": "09/05 a 15/05", "value": 26}, {"label": "16/05 a 22/05", "value": 22}, {"label": "23/05 a 31/05", "value": 20}], "pesada": [{"label": "01/05 a 08/05", "value": 0}, {"label": "09/05 a 15/05", "value": 0}, {"label": "16/05 a 22/05", "value": 0}, {"label": "23/05 a 31/05", "value": 0}]}, "Jun": {"leve": [{"label": "01/06 a 05/06", "value": 9}, {"label": "06/06 a 12/06", "value": 21}, {"label": "13/06 a 19/06", "value": 27}, {"label": "20/06 a 26/06", "value": 31}, {"label": "27/06 a 30/06", "value": 11}], "pesada": [{"label": "01/06 a 05/06", "value": 0}, {"label": "06/06 a 12/06", "value": 0}, {"label": "13/06 a 19/06", "value": 0}, {"label": "20/06 a 26/06", "value": 0}, {"label": "27/06 a 30/06", "value": 0}]}, "Jul": {"leve": [{"label": "01/07 a 10/07", "value": 40}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 51}, {"label": "25/07 a 31/07", "value": 27}], "pesada": [{"label": "01/07 a 10/07", "value": 0}, {"label": "11/07 a 17/07", "value": 0}, {"label": "18/07 a 24/07", "value": 0}, {"label": "25/07 a 31/07", "value": 0}]}, "Ago": {"leve": [{"label": "01/08 A 07/08", "value": 29}, {"label": "08/08 A 14/08", "value": 25}, {"label": "15/08 A 21/08", "value": 29}, {"label": "22/08 A 31/08", "value": 32}], "pesada": [{"label": "01/08 A 07/08", "value": 0}, {"label": "08/08 A 14/08", "value": 0}, {"label": "15/08 A 21/08", "value": 0}, {"label": "22/08 A 31/08", "value": 0}]}, "Set": {"leve": [{"label": "01/09 A 04/09", "value": 15}, {"label": "05/09 A 11/09", "value": 15}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}], "pesada": [{"label": "01/09 A 04/09", "value": 0}, {"label": "05/09 A 11/09", "value": 0}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}}};
+let OPORTUNIDADES_COUNT = {"Guarapari": {"Jan": [{"label": "01/01 a 09/01", "value": 78}, {"label": "10/01 a 16/01", "value": 124}, {"label": "17/01 a 23/01", "value": 90}, {"label": "24/01 a 31/01", "value": 45}], "Fev": [{"label": "01/02 a 06/02", "value": 43}, {"label": "07/02 a 13/02", "value": 100}, {"label": "14/02 a 20/02", "value": 44}, {"label": "21/02 a 28/02", "value": 85}], "Mar": [{"label": "01/03 a 06/03", "value": 77}, {"label": "14/03 a 20/03", "value": 152}, {"label": "21/03 a 27/03", "value": 127}, {"label": "28/03 a 31/03", "value": 51}], "Abr": [{"label": "01/04 a 10/04", "value": 161}, {"label": "18/04 a 24/04", "value": 98}, {"label": "25/04 a 30/04", "value": 82}], "Mai": [{"label": "01/05 a 08/05", "value": 110}, {"label": "09/05 a 15/05", "value": 106}, {"label": "16/05 a 22/05", "value": 81}, {"label": "23/05 a 31/05", "value": 130}], "Jun": [{"label": "01/06 a 05/06", "value": 68}, {"label": "06/06 a 12/06", "value": 94}, {"label": "13/06 a 19/06", "value": 71}, {"label": "20/06 a 26/06", "value": 88}, {"label": "27/06 a 30/06", "value": 14}], "Jul": [{"label": "01/07 a 10/07", "value": 106}, {"label": "11/07 a 17/07", "value": 69}, {"label": "18/07 a 24/07", "value": 66}, {"label": "25/07 a 31/07", "value": 34}], "Ago": [{"label": "01/08 A 07/08", "value": 35}, {"label": "08/08 A 14/08", "value": 85}, {"label": "15/08 A 21/08", "value": 86}, {"label": "22/08 A 31/08", "value": 93}], "Set": [{"label": "01/09 A 04/09", "value": 67}, {"label": "05/09 A 11/09", "value": 60}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}, "Serra": {"Jan": [{"label": "01/01 a 09/01", "value": 98}, {"label": "10/01 a 16/01", "value": 101}, {"label": "17/01 a 23/01", "value": 34}, {"label": "24/01 a 31/01", "value": 9}], "Fev": [{"label": "01/02 a 06/02", "value": 15}, {"label": "07/02 a 13/02", "value": 99}, {"label": "14/02 a 20/02", "value": 42}, {"label": "21/02 a 28/02", "value": 98}], "Mar": [{"label": "01/03 a 06/03", "value": 66}, {"label": "14/03 a 20/03", "value": 94}, {"label": "21/03 a 27/03", "value": 94}, {"label": "28/03 a 31/03", "value": 24}], "Abr": [{"label": "01/04 a 10/04", "value": 113}, {"label": "18/04 a 24/04", "value": 66}, {"label": "25/04 a 30/04", "value": 44}], "Mai": [{"label": "01/05 a 08/05", "value": 28}, {"label": "09/05 a 15/05", "value": 77}, {"label": "16/05 a 22/05", "value": 82}, {"label": "23/05 a 31/05", "value": 76}], "Jun": [{"label": "01/06 a 05/06", "value": 70}, {"label": "06/06 a 12/06", "value": 88}, {"label": "13/06 a 19/06", "value": 27}, {"label": "20/06 a 26/06", "value": 57}, {"label": "27/06 a 30/06", "value": 16}], "Jul": [{"label": "01/07 a 10/07", "value": 144}, {"label": "11/07 a 17/07", "value": 49}, {"label": "18/07 a 24/07", "value": 49}, {"label": "25/07 a 31/07", "value": 49}], "Ago": [{"label": "01/08 A 07/08", "value": 59}, {"label": "08/08 A 14/08", "value": 48}, {"label": "15/08 A 21/08", "value": 42}, {"label": "22/08 A 31/08", "value": 69}], "Set": [{"label": "01/09 A 04/09", "value": 42}, {"label": "05/09 A 11/09", "value": 31}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}, "Vila Velha": {"Jan": [{"label": "01/01 a 09/01", "value": 80}, {"label": "10/01 a 16/01", "value": 193}, {"label": "17/01 a 23/01", "value": 162}, {"label": "24/01 a 31/01", "value": 60}], "Fev": [{"label": "01/02 a 06/02", "value": 30}, {"label": "07/02 a 13/02", "value": 120}, {"label": "14/02 a 20/02", "value": 79}, {"label": "21/02 a 28/02", "value": 126}], "Mar": [{"label": "01/03 a 06/03", "value": 78}, {"label": "14/03 a 20/03", "value": 83}, {"label": "21/03 a 27/03", "value": 87}, {"label": "28/03 a 31/03", "value": 37}], "Abr": [{"label": "01/04 a 10/04", "value": 205}, {"label": "18/04 a 24/04", "value": 66}, {"label": "25/04 a 30/04", "value": 66}], "Mai": [{"label": "01/05 a 08/05", "value": 70}, {"label": "09/05 a 15/05", "value": 113}, {"label": "16/05 a 22/05", "value": 90}, {"label": "23/05 a 31/05", "value": 91}], "Jun": [{"label": "01/06 a 05/06", "value": 80}, {"label": "06/06 a 12/06", "value": 79}, {"label": "13/06 a 19/06", "value": 75}, {"label": "20/06 a 26/06", "value": 78}, {"label": "27/06 a 30/06", "value": 42}], "Jul": [{"label": "01/07 a 10/07", "value": 95}, {"label": "11/07 a 17/07", "value": 87}, {"label": "18/07 a 24/07", "value": 50}, {"label": "25/07 a 31/07", "value": 102}], "Ago": [{"label": "01/08 A 07/08", "value": 100}, {"label": "08/08 A 14/08", "value": 68}, {"label": "15/08 A 21/08", "value": 77}, {"label": "22/08 A 31/08", "value": 86}], "Set": [{"label": "01/09 A 04/09", "value": 46}, {"label": "05/09 A 11/09", "value": 43}, {"label": "12/09 A 18/09", "value": 0}, {"label": "19/09 A 25/09", "value": 0}, {"label": "26/09 A 30/09", "value": 0}]}};
+
+let CONTRACTS_META = {"Serra": {"Jan": {"meta": null, "media": null}, "Fev": {"meta": 52500, "media": 13125}, "Mar": {"meta": 52500, "media": 13125}, "Abr": {"meta": 60000, "media": 15000}, "Mai": {"meta": 60000, "media": 15000}, "Jun": {"meta": 63750, "media": 15937.5}, "Jul": {"meta": 63750, "media": 15937.5}, "Ago": {"meta": 67500, "media": 16875}, "Set": {"meta": 67500, "media": 16875}}, "Vila Velha": {"Jan": {"meta": null, "media": null}, "Fev": {"meta": 60000, "media": 15000}, "Mar": {"meta": 63750, "media": 15937.5}, "Abr": {"meta": 63750, "media": 15937.5}, "Mai": {"meta": 67500, "media": 16875}, "Jun": {"meta": 67500, "media": 16875}, "Jul": {"meta": 67500, "media": 16875}, "Ago": {"meta": 67500, "media": 16875}, "Set": {"meta": 71250, "media": 17812.5}}, "Guarapari (leve)": {"Jan": {"meta": null, "media": null}, "Fev": {"meta": 63750, "media": 15937.5}, "Mar": {"meta": 67500, "media": 16875}, "Abr": {"meta": 75000, "media": 18750}, "Mai": {"meta": 82500, "media": 20625}, "Jun": {"meta": 82500, "media": 20625}, "Jul": {"meta": 82500, "media": 20625}, "Ago": {"meta": 86250, "media": 21562.5}, "Set": {"meta": 86250, "media": 21562.5}}, "Guarapari (pesada)": {"Jan": {"meta": null, "media": null}, "Fev": {"meta": 87000, "media": 21750}, "Mar": {"meta": 97500, "media": 24375}, "Abr": {"meta": 97500, "media": 24375}, "Mai": {"meta": 97500, "media": 24375}, "Jun": {"meta": 102000, "media": 25500}, "Jul": {"meta": 106500, "media": 26625}, "Ago": {"meta": 106500, "media": 26625}, "Set": {"meta": 111000, "media": 27750}}};
+
+let WEEKLY_INADIMPLENCIA = {"Serra": {"Jan": [{"label": "01/01 a 09/01", "value": 12310}, {"label": "10/01 a 16/01", "value": 11436}, {"label": "17/01 a 23/01", "value": 21957}, {"label": "24/01 a 31/01", "value": 16359}], "Fev": [{"label": "01/02 a 06/02", "value": 5173.2}, {"label": "07/02 a 13/02", "value": 7355}, {"label": "14/02 a 20/02", "value": 13035}, {"label": "21/02 a 28/02", "value": 16635}], "Mar": [{"label": "01/03 a 06/03", "value": 19437}, {"label": "07/03 a 13/03", "value": 16493}, {"label": "14/03 a 20/03", "value": 20003}, {"label": "21/03 a 27/03", "value": 10285}, {"label": "28/03 a 31/03", "value": 7745}], "Abr": [{"label": "01/04 a 10/04", "value": 15061.5}, {"label": "11/04 a 17/04", "value": 34753}, {"label": "18/04 a 24/04", "value": 10565}, {"label": "25/04 a 30/04", "value": 16737.94}], "Mai": [{"label": "01/05 a 08/05", "value": 19413}, {"label": "09/05 a 15/05", "value": 22280}, {"label": "16/05 a 22/05", "value": 29841.5}, {"label": "23/05 a 31/05", "value": 12277.5}], "Jun": [{"label": "01/06 a 05/06", "value": 34980}, {"label": "06/06 a 12/06", "value": 44122.5}, {"label": "13/06 a 19/06", "value": 42184}, {"label": "20/06 a 26/06", "value": 20968}, {"label": "27/06 a 30/06", "value": 25308}], "Jul": [{"label": "01/07 a 10/07", "value": 39566}, {"label": "11/07 a 17/07", "value": 36919}, {"label": "18/07 a 24/07", "value": 38831.94}, {"label": "25/07 a 31/07", "value": 27878.52}], "Ago": [{"label": "01/08 A 07/08", "value": 21958}, {"label": "08/08 A 14/08", "value": 26459.74}, {"label": "15/08 A 21/08", "value": 28546.69}, {"label": "22/08 A 31/08", "value": 32892.89}], "Set": [{"label": "01/09 A 04/09", "value": 30684.89}, {"label": "05/09 A 11/09", "value": 33447.89}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}, "Vila Velha": {"Jan": [{"label": "01/01 a 09/01", "value": 6114}, {"label": "10/01 a 16/01", "value": 6392}, {"label": "17/01 a 23/01", "value": 6792.67}, {"label": "24/01 a 31/01", "value": 4650}], "Fev": [{"label": "01/02 a 06/02", "value": 3685}, {"label": "07/02 a 13/02", "value": 7030}, {"label": "14/02 a 20/02", "value": 9485}, {"label": "21/02 a 28/02", "value": 14080.56}], "Mar": [{"label": "01/03 a 06/03", "value": 13292.56}, {"label": "07/03 a 13/03", "value": 8186.06}, {"label": "14/03 a 20/03", "value": 9396.56}, {"label": "21/03 a 27/03", "value": 11119.79}, {"label": "28/03 a 31/03", "value": 11044}], "Abr": [{"label": "01/04 a 10/04", "value": 9432.56}, {"label": "11/04 a 17/04", "value": 11495.06}, {"label": "18/04 a 24/04", "value": 15371.06}, {"label": "25/04 a 30/04", "value": 15977}], "Mai": [{"label": "01/05 a 08/05", "value": 23912.75}, {"label": "09/05 a 15/05", "value": 20779}, {"label": "16/05 a 22/05", "value": 29645}, {"label": "23/05 a 31/05", "value": 17843}], "Jun": [{"label": "01/06 a 05/06", "value": 23603.45}, {"label": "06/06 a 12/06", "value": 25725.45}, {"label": "13/06 a 19/06", "value": 29065.76}, {"label": "20/06 a 26/06", "value": 27433.26}, {"label": "27/06 a 30/06", "value": 18781.95}], "Jul": [{"label": "01/07 a 10/07", "value": 29528}, {"label": "11/07 a 17/07", "value": 34643}, {"label": "18/07 a 24/07", "value": 28942}, {"label": "25/07 a 31/07", "value": 36272.93}], "Ago": [{"label": "01/08 A 07/08", "value": 23765.93}, {"label": "08/08 A 14/08", "value": 24455.93}, {"label": "15/08 A 21/08", "value": 24899.93}, {"label": "22/08 A 31/08", "value": 38076.85}], "Set": [{"label": "01/09 A 04/09", "value": 32420.85}, {"label": "05/09 A 11/09", "value": 32927.69}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}, "Guarapari (leve)": {"Jan": [{"label": "01/01 a 09/01", "value": 34979}, {"label": "10/01 a 16/01", "value": 95760}, {"label": "17/01 a 23/01", "value": 61221}, {"label": "24/01 a 31/01", "value": 142713}], "Fev": [{"label": "01/02 a 06/02", "value": 132615.52}, {"label": "07/02 a 13/02", "value": 174051}, {"label": "14/02 a 20/02", "value": 188586}, {"label": "21/02 a 28/02", "value": 187632}], "Mar": [{"label": "01/03 a 06/03", "value": 220170}, {"label": "07/03 a 13/03", "value": 81327}, {"label": "14/03 a 20/03", "value": 95371}, {"label": "21/03 a 27/03", "value": 123417}, {"label": "28/03 a 31/03", "value": 94607}], "Abr": [{"label": "01/04 a 10/04", "value": 69414}, {"label": "11/04 a 17/04", "value": 128576}, {"label": "18/04 a 24/04", "value": 104852}, {"label": "25/04 a 30/04", "value": 157944}], "Mai": [{"label": "01/05 a 08/05", "value": 160849}, {"label": "09/05 a 15/05", "value": 141739}, {"label": "16/05 a 22/05", "value": 143011}, {"label": "23/05 a 31/05", "value": 180304}], "Jun": [{"label": "01/06 a 05/06", "value": 133559}, {"label": "06/06 a 12/06", "value": 137519}, {"label": "13/06 a 19/06", "value": 168619}, {"label": "20/06 a 26/06", "value": 215642.5}, {"label": "27/06 a 30/06", "value": 272347.81}], "Jul": [{"label": "01/07 a 10/07", "value": 290294}, {"label": "11/07 a 17/07", "value": 282036}, {"label": "18/07 a 24/07", "value": 257750}, {"label": "25/07 a 31/07", "value": 331517}], "Ago": [{"label": "01/08 A 07/08", "value": 303256}, {"label": "08/08 A 14/08", "value": 320001}, {"label": "15/08 A 21/08", "value": 345481}, {"label": "22/08 A 31/08", "value": 316932}], "Set": [{"label": "01/09 A 04/09", "value": 347424}, {"label": "05/09 A 11/09", "value": 347689}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}, "Guarapari (pesada)": {"Jan": [{"label": "01/01 a 09/01", "value": null}, {"label": "10/01 a 16/01", "value": null}, {"label": "17/01 a 23/01", "value": null}, {"label": "24/01 a 31/01", "value": null}], "Fev": [{"label": "01/02 a 06/02", "value": null}, {"label": "07/02 a 13/02", "value": null}, {"label": "14/02 a 20/02", "value": null}, {"label": "21/02 a 28/02", "value": null}], "Mar": [{"label": "01/03 a 06/03", "value": null}, {"label": "07/03 a 13/03", "value": null}, {"label": "14/03 a 20/03", "value": null}, {"label": "21/03 a 27/03", "value": null}, {"label": "28/03 a 31/03", "value": null}], "Abr": [{"label": "01/04 a 10/04", "value": null}, {"label": "11/04 a 17/04", "value": null}, {"label": "18/04 a 24/04", "value": null}, {"label": "25/04 a 30/04", "value": null}], "Mai": [{"label": "01/05 a 08/05", "value": null}, {"label": "09/05 a 15/05", "value": null}, {"label": "16/05 a 22/05", "value": null}, {"label": "23/05 a 31/05", "value": null}], "Jun": [{"label": "01/06 a 05/06", "value": null}, {"label": "06/06 a 12/06", "value": null}, {"label": "13/06 a 19/06", "value": null}, {"label": "20/06 a 26/06", "value": null}, {"label": "27/06 a 30/06", "value": null}], "Jul": [{"label": "01/07 a 10/07", "value": null}, {"label": "11/07 a 17/07", "value": null}, {"label": "18/07 a 24/07", "value": null}, {"label": "25/07 a 31/07", "value": null}], "Ago": [{"label": "01/08 A 07/08", "value": null}, {"label": "08/08 A 14/08", "value": null}, {"label": "15/08 A 21/08", "value": null}, {"label": "22/08 A 31/08", "value": null}], "Set": [{"label": "01/09 A 04/09", "value": null}, {"label": "05/09 A 11/09", "value": null}, {"label": "12/09 A 18/09", "value": null}, {"label": "19/09 A 25/09", "value": null}, {"label": "26/09 A 30/09", "value": null}]}};
+
+
+
+// dados por vendedor, por mês — extraídos das planilhas de funil comercial (linha leve)
+let SELLERS = {"Jan": {"Rodrigo": {"ganhas": 0, "contratosLeve": 15, "valorLeve": 3696, "contratosPesada": 2, "valorPesada": 9000}, "Renata": {"ganhas": 36, "contratosLeve": 85, "valorLeve": 26624, "contratosPesada": 2, "valorPesada": 9100}, "Yhago": {"ganhas": 34, "contratosLeve": 63, "valorLeve": 16298, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 22, "contratosLeve": 53, "valorLeve": 26237.85, "contratosPesada": 0, "valorPesada": 0}, "Nayara": {"ganhas": 72, "contratosLeve": 35, "valorLeve": 24357.5, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 26, "contratosLeve": 54, "valorLeve": 20227.5, "contratosPesada": 1, "valorPesada": 11970}, "Felype": {"ganhas": 3, "contratosLeve": 7, "valorLeve": 2350, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 7, "contratosLeve": 97, "valorLeve": 35172.92, "contratosPesada": 0, "valorPesada": 0}}, "Fev": {"Erick": {"ganhas": 61, "contratosLeve": 63, "valorLeve": 13989, "contratosPesada": 3, "valorPesada": 34455}, "Renata": {"ganhas": 13, "contratosLeve": 8, "valorLeve": 3230, "contratosPesada": 1, "valorPesada": 26000}, "Yhago": {"ganhas": 71, "contratosLeve": 70, "valorLeve": 17435, "contratosPesada": 1, "valorPesada": 2300}, "Bárbara": {"ganhas": 38, "contratosLeve": 51, "valorLeve": 23346.05, "contratosPesada": 0, "valorPesada": 0}, "Nayara": {"ganhas": 36, "contratosLeve": 47, "valorLeve": 23302.8, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 52, "contratosLeve": 45, "valorLeve": 15637, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 21, "contratosLeve": 88, "valorLeve": 33904.1, "contratosPesada": 0, "valorPesada": 0}, "Felype": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}}, "Mar": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 2, "valorPesada": 18080}, "Erick": {"ganhas": 64, "contratosLeve": 65, "valorLeve": 15965, "contratosPesada": 2, "valorPesada": 4250}, "Renata": {"ganhas": 36, "contratosLeve": 46, "valorLeve": 14218, "contratosPesada": 0, "valorPesada": 0}, "Yhago": {"ganhas": 56, "contratosLeve": 56, "valorLeve": 11589, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 44, "contratosLeve": 60, "valorLeve": 29065, "contratosPesada": 0, "valorPesada": 0}, "Nayara": {"ganhas": 36, "contratosLeve": 45, "valorLeve": 15704, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 92, "contratosLeve": 111, "valorLeve": 42181.81, "contratosPesada": 1, "valorPesada": 1200}, "Maiara": {"ganhas": 27, "contratosLeve": 52, "valorLeve": 19799, "contratosPesada": 0, "valorPesada": 0}}, "Abr": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}, "Erick": {"ganhas": 46, "contratosLeve": 48, "valorLeve": 10272, "contratosPesada": 2, "valorPesada": 3430}, "Renata": {"ganhas": 64, "contratosLeve": 67, "valorLeve": 20576, "contratosPesada": 1, "valorPesada": 3700}, "Yhago": {"ganhas": 35, "contratosLeve": 41, "valorLeve": 10076, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 50, "contratosLeve": 56, "valorLeve": 18276, "contratosPesada": 0, "valorPesada": 0}, "Nayara": {"ganhas": 32, "contratosLeve": 35, "valorLeve": 11270, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 57, "contratosLeve": 57, "valorLeve": 37007, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 60, "contratosLeve": 92, "valorLeve": 39792, "contratosPesada": 0, "valorPesada": 0}, "Felype": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}}, "Mai": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 1, "valorPesada": 20000}, "Erick": {"ganhas": 66, "contratosLeve": 76, "valorLeve": 18189, "contratosPesada": 7, "valorPesada": 54810}, "Renata": {"ganhas": 45, "contratosLeve": 50, "valorLeve": 11610, "contratosPesada": 1, "valorPesada": 2200}, "Yhago": {"ganhas": 4, "contratosLeve": 6, "valorLeve": 1570, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 39, "contratosLeve": 46, "valorLeve": 30957, "contratosPesada": 8, "valorPesada": 22471}, "Bruno": {"ganhas": 27, "contratosLeve": 30, "valorLeve": 8912.85, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 54, "contratosLeve": 67, "valorLeve": 22506, "contratosPesada": 2, "valorPesada": 6720}, "Maiara": {"ganhas": 41, "contratosLeve": 92, "valorLeve": 40221, "contratosPesada": 0, "valorPesada": 0}, "Felype": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}}, "Jun": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 1, "valorPesada": 1900}, "Erick": {"ganhas": 37, "contratosLeve": 44, "valorLeve": 8903, "contratosPesada": 7, "valorPesada": 40903}, "Renata": {"ganhas": 43, "contratosLeve": 52, "valorLeve": 17318, "contratosPesada": 0, "valorPesada": 0}, "Yhago": {"ganhas": 40, "contratosLeve": 45, "valorLeve": 10127, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 58, "contratosLeve": 75, "valorLeve": 39279, "contratosPesada": 0, "valorPesada": 0}, "Bruno": {"ganhas": 20, "contratosLeve": 31, "valorLeve": 10570, "contratosPesada": 1, "valorPesada": 750}, "Camille": {"ganhas": 30, "contratosLeve": 51, "valorLeve": 18951.5, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 68, "contratosLeve": 96, "valorLeve": 30692.5, "contratosPesada": 0, "valorPesada": 0}}, "Jul": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 1, "valorPesada": 21600}, "Erick": {"ganhas": 59, "contratosLeve": 53, "valorLeve": 16527, "contratosPesada": 8, "valorPesada": 80094}, "Renata": {"ganhas": 26, "contratosLeve": 48, "valorLeve": 11509, "contratosPesada": 7, "valorPesada": 67568}, "Yhago": {"ganhas": 30, "contratosLeve": 48, "valorLeve": 13439, "contratosPesada": 2, "valorPesada": 10400}, "Bárbara": {"ganhas": 67, "contratosLeve": 87, "valorLeve": 40399.19, "contratosPesada": 3, "valorPesada": 5750}, "Bruno": {"ganhas": 0, "contratosLeve": 5, "valorLeve": 2899, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 26, "contratosLeve": 67, "valorLeve": 19491, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 55, "contratosLeve": 82, "valorLeve": 31849, "contratosPesada": 1, "valorPesada": 8540}}, "Ago": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}, "Erick": {"ganhas": 76, "contratosLeve": 80, "valorLeve": 22468, "contratosPesada": 8, "valorPesada": 47628}, "Renata": {"ganhas": 22, "contratosLeve": 35, "valorLeve": 6119, "contratosPesada": 4, "valorPesada": 14943}, "Yhago": {"ganhas": 51, "contratosLeve": 73, "valorLeve": 19807, "contratosPesada": 3, "valorPesada": 13700}, "Bárbara": {"ganhas": 62, "contratosLeve": 81, "valorLeve": 28724, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 53, "contratosLeve": 55, "valorLeve": 21433, "contratosPesada": 2, "valorPesada": 11200}, "Maiara": {"ganhas": 44, "contratosLeve": 85, "valorLeve": 38392.4, "contratosPesada": 1, "valorPesada": 2800}, "Bruno": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}}, "Set": {"Riccardo": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}, "Erick": {"ganhas": 22, "contratosLeve": 23, "valorLeve": 6195, "contratosPesada": 5, "valorPesada": 80150}, "Renata": {"ganhas": 20, "contratosLeve": 23, "valorLeve": 11950, "contratosPesada": 0, "valorPesada": 0}, "Yhago": {"ganhas": 14, "contratosLeve": 16, "valorLeve": 6300, "contratosPesada": 0, "valorPesada": 0}, "Bárbara": {"ganhas": 8, "contratosLeve": 18, "valorLeve": 7385, "contratosPesada": 0, "valorPesada": 0}, "Lorrany": {"ganhas": 0, "contratosLeve": 1, "valorLeve": 160, "contratosPesada": 0, "valorPesada": 0}, "Camille": {"ganhas": 0, "contratosLeve": 1, "valorLeve": 1850, "contratosPesada": 0, "valorPesada": 0}, "Maiara": {"ganhas": 16, "contratosLeve": 59, "valorLeve": 23921, "contratosPesada": 0, "valorPesada": 0}, "Bruno": {"ganhas": 0, "contratosLeve": 0, "valorLeve": 0, "contratosPesada": 0, "valorPesada": 0}}};
+
+const unitColors = {
+  Serra:"#6a9bff", "Vila Velha":"#4fd399", "Guarapari (leve)":"#f0b45e", "Guarapari (pesada)":"#d68bff",
+  Guarapari:"#f0715a"
+};
+const fmtR$ = v => v==null? "—" : "R$ " + Math.round(v).toLocaleString('pt-BR');
+const fmtR$k = v => v==null? "—" : "R$ " + (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:0}) + "k";
+const fmtPct = v => v==null? "—" : v.toFixed(1)+"%";
+const fmtInt = v => v==null? "—" : Math.round(v).toLocaleString('pt-BR');
+
+// =================================================================
+// Minimal dependency-free SVG chart helpers
+// =================================================================
+function el(tag, attrs, children){
+  const ns = "http://www.w3.org/2000/svg";
+  const node = document.createElementNS(ns, tag);
+  for(const k in attrs) node.setAttribute(k, attrs[k]);
+  (children||[]).forEach(c=>node.appendChild(c));
+  return node;
+}
+function svgRoot(w,h){ return el('svg',{viewBox:`0 0 ${w} ${h}`, preserveAspectRatio:'xMidYMid meet'}); }
+
+// ---------------------------------------------------------------
+// Visual polish helpers: gradients + glow, shared across chart types
+// ---------------------------------------------------------------
+let __svgUidCounter = 0;
+function svgUid(svg){
+  if(!svg.__uid) svg.__uid = 'u' + (++__svgUidCounter);
+  return svg.__uid;
+}
+function ensureDefs(svg){
+  let defs = svg.querySelector('defs');
+  if(!defs){ defs = el('defs',{}); svg.insertBefore(defs, svg.firstChild); }
+  return defs;
+}
+function colorId(hex){ return 'c'+hex.replace('#',''); }
+function ensureBarGradient(svg, hex, vertical){
+  const defs = ensureDefs(svg);
+  const id = 'grad-'+svgUid(svg)+'-'+colorId(hex)+(vertical?'-v':'-h');
+  if(defs.querySelector('#'+id)) return `url(#${id})`;
+  const grad = el('linearGradient', vertical
+    ? {id, x1:'0', y1:'0', x2:'0', y2:'1'}
+    : {id, x1:'0', y1:'0', x2:'1', y2:'0'});
+  const stop1 = el('stop',{offset:'0%', 'stop-color':hex, 'stop-opacity':'1'});
+  const stop2 = el('stop',{offset:'100%', 'stop-color':hex, 'stop-opacity':'.9'});
+  grad.appendChild(stop1); grad.appendChild(stop2);
+  defs.appendChild(grad);
+  return `url(#${id})`;
+}
+function ensureGlow(svg, hex){
+  const defs = ensureDefs(svg);
+  const id = 'glow-'+svgUid(svg)+'-'+colorId(hex);
+  if(defs.querySelector('#'+id)) return `url(#${id})`;
+  const filter = el('filter',{id, x:'-60%', y:'-60%', width:'220%', height:'220%'});
+  filter.appendChild(el('feGaussianBlur',{stdDeviation:'3', result:'blur'}));
+  const merge = el('feMerge',{});
+  merge.appendChild(el('feMergeNode',{in:'blur'}));
+  merge.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
+  filter.appendChild(merge);
+  defs.appendChild(filter);
+  return `url(#${id})`;
+}
+function ensureAreaGradient(svg, hex){
+  const defs = ensureDefs(svg);
+  const id = 'area-'+svgUid(svg)+'-'+colorId(hex);
+  if(defs.querySelector('#'+id)) return `url(#${id})`;
+  const grad = el('linearGradient',{id, x1:'0', y1:'0', x2:'0', y2:'1'});
+  grad.appendChild(el('stop',{offset:'0%', 'stop-color':hex, 'stop-opacity':'.35'}));
+  grad.appendChild(el('stop',{offset:'100%', 'stop-color':hex, 'stop-opacity':'0'}));
+  defs.appendChild(grad);
+  return `url(#${id})`;
+}
+// smooth path through points using simple catmull-rom -> cubic bezier conversion
+function smoothPath(points){
+  if(points.length<2) return '';
+  if(points.length===2) return `M${points[0].x},${points[0].y} L${points[1].x},${points[1].y}`;
+  let d = `M${points[0].x},${points[0].y} `;
+  for(let i=0;i<points.length-1;i++){
+    const p0 = points[i===0?0:i-1], p1 = points[i], p2 = points[i+1], p3 = points[i+2===points.length+1?i+1:Math.min(i+2,points.length-1)];
+    const c1x = p1.x + (p2.x-p0.x)/6, c1y = p1.y + (p2.y-p0.y)/6;
+    const c2x = p2.x - (p3.x-p1.x)/6, c2y = p2.y - (p3.y-p1.y)/6;
+    d += `C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} `;
+  }
+  return d;
+}
+
+// ---------------------------------------------------------------
+// Dynamic tooltip (replaces native <title> — instant, styled, follows cursor)
+// ---------------------------------------------------------------
+let __tipEl = null;
+function ensureTip(){
+  if(__tipEl) return __tipEl;
+  __tipEl = document.createElement('div');
+  __tipEl.style.cssText = 'position:fixed;pointer-events:none;z-index:9999;background:#1c263a;'
+    + 'color:#e8ecf4;border:1px solid #344160;border-radius:6px;padding:6px 10px;font-size:12px;'
+    + "font-family:-apple-system,'Segoe UI',Inter,Arial,sans-serif;box-shadow:0 6px 16px rgba(0,0,0,.4);"
+    + 'opacity:0;transition:opacity .08s ease;white-space:nowrap;';
+  document.body.appendChild(__tipEl);
+  return __tipEl;
+}
+function positionTip(evt){
+  const tip = ensureTip();
+  const pad = 14;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  const r = tip.getBoundingClientRect();
+  if(x + r.width > window.innerWidth - 8) x = evt.clientX - r.width - pad;
+  if(y + r.height > window.innerHeight - 8) y = evt.clientY - r.height - pad;
+  tip.style.left = x+'px'; tip.style.top = y+'px';
+}
+function showTip(evt, html){
+  const tip = ensureTip();
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  positionTip(evt);
+}
+function hideTip(){ if(__tipEl) __tipEl.style.opacity = '0'; }
+// attach hover behavior + visual highlight to any SVG shape node
+function bindTip(node, htmlFn, highlightAttrs){
+  node.style.cursor = 'pointer';
+  node.style.transition = 'opacity .08s ease, filter .08s ease';
+  node.addEventListener('mouseenter', e=>{
+    showTip(e, htmlFn());
+    node.style.filter = 'brightness(1.3)';
+  });
+  node.addEventListener('mousemove', positionTip);
+  node.addEventListener('mouseleave', ()=>{
+    hideTip();
+    node.style.filter = '';
+  });
+}
+
+function drawLegend(container, items){
+  const legend = document.createElement('div'); legend.className='legend';
+  items.forEach(it=>{
+    const span = document.createElement('span');
+    span.innerHTML = `<i style="background:${it.color}"></i>${it.name}`;
+    legend.appendChild(span);
+  });
+  container.appendChild(legend);
+}
+
+// grouped bar chart. series = [{name,color,values}]
+function barChart(containerId, categories, series, opts){
+  opts = opts || {};
+  const w = opts.w||520, h = opts.h||230;
+  const padL=opts.padL||44, padR=10, padT=10, padB=28;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const allVals = series.flatMap(s=>s.values).filter(v=>v!=null);
+  const maxV = opts.max || Math.max(1, ...allVals) * 1.15;
+  const svg = svgRoot(w,h);
+  for(let i=0;i<=4;i++){
+    const y = padT + plotH - (plotH*i/4);
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'axis-line'}));
+    const t = el('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'bar-label'});
+    t.textContent = opts.fmt ? opts.fmt(maxV*i/4) : Math.round(maxV*i/4);
+    svg.appendChild(t);
+  }
+  const groupW = plotW/categories.length, barGap = 6;
+  const barW = (groupW - barGap*(series.length+1)) / series.length;
+  categories.forEach((cat,ci)=>{
+    series.forEach((s,si)=>{
+      const v = s.values[ci];
+      const bh = v==null? 0 : (v/maxV)*plotH;
+      const x = padL + ci*groupW + barGap + si*(barW+barGap);
+      const y = padT + plotH - bh;
+      const rect = el('rect',{x, y, width:Math.max(barW,1), height:bh, fill: v==null? '#26324a' : ensureBarGradient(svg,s.color,true), rx:5});
+      // (sem contorno extra — o preenchimento sólido já dá contraste suficiente)
+      bindTip(rect, ()=> `<strong>${s.name}</strong><br>${cat}: ${v==null?'sem dado':(opts.fmt?opts.fmt(v):v)}`);
+      svg.appendChild(rect);
+    });
+    const t = el('text',{x: padL+ci*groupW+groupW/2, y: h-8, 'text-anchor':'middle', class:'bar-label'});
+    t.textContent = cat; svg.appendChild(t);
+  });
+  const container = document.getElementById(containerId);
+  container.innerHTML = ''; container.appendChild(svg);
+  if(series.length>1 || opts.forceLegend) drawLegend(container, series);
+}
+
+// line chart. series = [{name,color,values,dash}]
+function lineChart(containerId, categories, series, opts){
+  opts = opts || {};
+  const w = opts.w||520, h = opts.h||230;
+  const padL=opts.padL||48, padR=14, padT=14, padB=28;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const allVals = series.flatMap(s=>s.values).filter(v=>v!=null);
+  const maxV = opts.max || Math.max(1, ...allVals) * 1.12;
+  const svg = svgRoot(w,h);
+  for(let i=0;i<=4;i++){
+    const y = padT + plotH - (plotH*i/4);
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'axis-line'}));
+    const t = el('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'bar-label'});
+    t.textContent = opts.fmt ? opts.fmt(maxV*i/4) : Math.round(maxV*i/4);
+    svg.appendChild(t);
+  }
+  const stepX = plotW/(categories.length-1);
+  categories.forEach((cat,ci)=>{
+    const t = el('text',{x: padL+ci*stepX, y: h-8, 'text-anchor':'middle', class:'bar-label'});
+    t.textContent = cat; svg.appendChild(t);
+  });
+  series.forEach(s=>{
+    const pts = [];
+    s.values.forEach((v,i)=>{
+      if(v==null) return;
+      pts.push({x: padL + i*stepX, y: padT + plotH - (v/maxV)*plotH});
+    });
+    const d = smoothPath(pts);
+    if(!s.dash && pts.length>1){
+      // área de gradiente sob a linha principal (não usada em linhas tracejadas/meta)
+      const areaD = d + ` L${pts[pts.length-1].x.toFixed(1)},${(padT+plotH).toFixed(1)} L${pts[0].x.toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+      svg.appendChild(el('path',{d:areaD, fill:ensureAreaGradient(svg,s.color), stroke:'none'}));
+    }
+    const path = el('path',{d, fill:'none', stroke:s.color, 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+    if(s.dash) path.setAttribute('stroke-dasharray', s.dash);
+    else path.setAttribute('filter', ensureGlow(svg, s.color));
+    svg.appendChild(path);
+    s.values.forEach((v,i)=>{
+      if(v==null) return;
+      const x = padL + i*stepX, y = padT + plotH - (v/maxV)*plotH;
+      const c = el('circle',{cx:x, cy:y, r:4, fill:s.color, stroke:'#0a0f1a', 'stroke-width':1.5});
+      svg.appendChild(c);
+      if(opts.showLabels){
+        const lbl = el('text',{x, y:y-11, 'text-anchor':'middle',
+          style:'font-size:9.5px;font-weight:600;fill:'+s.color+';font-family:var(--mono);paint-order:stroke;stroke:#0a0f1a;stroke-width:3px;'});
+        lbl.textContent = opts.fmt ? opts.fmt(v) : v;
+        svg.appendChild(lbl);
+      }
+      const hit = el('circle',{cx:x, cy:y, r:10, fill:'transparent', style:'cursor:pointer;'});
+      hit.addEventListener('mouseenter', e=>{ showTip(e, `<strong>${s.name}</strong><br>${categories[i]}: ${opts.fmt?opts.fmt(v):v}`); c.setAttribute('r',6); });
+      hit.addEventListener('mousemove', positionTip);
+      hit.addEventListener('mouseleave', ()=>{ hideTip(); c.setAttribute('r',4); });
+      svg.appendChild(hit);
+    });
+  });
+  const container = document.getElementById(containerId);
+  container.innerHTML = ''; container.appendChild(svg);
+  drawLegend(container, series);
+}
+
+// =================================================================
+// header / month select
+// =================================================================
+document.getElementById('asof').textContent = "Carregando dados da planilha...";
+
+const sel = document.getElementById('monthSelect');
+// populateMonthSelect(): reconstrói as opções do mês a partir de MONTHS/PARTIAL
+// (chamado a cada atualização, já que MONTHS pode crescer sozinho quando um
+// mês novo é aberto na planilha). Preserva o mês que o gestor tinha escolhido,
+// se esse mês ainda existir na nova lista.
+function populateMonthSelect(){
+  const previousName = sel.value !== '' && MONTHS[parseInt(sel.value)] !== undefined ? MONTHS[parseInt(sel.value)] : null;
+  sel.innerHTML = '';
+  MONTHS.forEach((m,i)=>{
+    const o=document.createElement('option'); o.value=i; o.textContent = m + (PARTIAL[m]?" (parcial)":"");
+    sel.appendChild(o);
+  });
+  if(previousName){
+    const idx = MONTHS.indexOf(previousName);
+    sel.value = idx>=0 ? idx : MONTHS.length-1;
+  } else {
+    sel.value = MONTHS.length-1;
+  }
+}
+
+// tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// =================================================================
+// FINANCEIRO
+// =================================================================
+function renderFinKPIs(mi){
+  const units = ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pesada)"];
+  const cards = units.map(u=>{
+    const real = FIN.revenue[u][mi], meta = FIN.meta[u][mi];
+    const pct = real/meta*100;
+    const gap = meta - real; // positivo = falta, negativo = superou
+    let cls, sub;
+    if(gap<=0){
+      cls='up'; sub = `Meta batida — +${fmtR$(-gap)} acima`;
+    } else if(pct>=85){
+      cls='warn'; sub = `Faltam ${fmtR$(gap)} para a meta`;
+    } else {
+      cls='down'; sub = `Faltam ${fmtR$(gap)} para a meta`;
+    }
+    return {label:u, value: fmtR$(real), sub: `${pct.toFixed(1)}% da meta · ${sub}`, cls};
+  });
+
+  const totalReal = units.reduce((s,u)=>s+FIN.revenue[u][mi],0);
+  const totalMeta = units.reduce((s,u)=>s+FIN.meta[u][mi],0);
+  const totalPct = totalReal/totalMeta*100;
+  const totalGap = totalMeta - totalReal;
+  let totalCls, totalSub;
+  if(totalGap<=0){ totalCls='up'; totalSub = `Meta batida — +${fmtR$(-totalGap)} acima`; }
+  else if(totalPct>=85){ totalCls='warn'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
+  else { totalCls='down'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
+  cards.push({label:'Total geral', value: fmtR$(totalReal), sub: `${totalPct.toFixed(1)}% da meta · ${totalSub}`, cls: totalCls});
+
+  document.getElementById('kpiFin').innerHTML = cards.map(c=>`
+    <div class="kpi"><div class="label">${c.label}</div><div class="value">${c.value}</div>
+    <div class="sub ${c.cls}">${c.sub}</div></div>`).join('');
+}
+
+function renderRevTrend(){
+  const units = Object.keys(FIN.revenue);
+  const totalReal = MONTHS.map((_,i)=>units.reduce((s,u)=>s+FIN.revenue[u][i],0));
+  const totalMeta = MONTHS.map((_,i)=>units.reduce((s,u)=>s+FIN.meta[u][i],0));
+  lineChart('chartRevTrend', MONTHS, [
+    {name:'Realizado', color:'#f0b45e', values: totalReal},
+    {name:'Meta', color:'#6a9bff', dash:'4,3', values: totalMeta}
+  ], {fmt:fmtR$k});
+}
+
+const COM_STORES = ["Guarapari","Serra","Vila Velha"];
+
+// meta combinada por loja (soma leve+pesada quando a planilha traz dividido, como em Guarapari)
+function comMeta(store, m){
+  if(store==='Guarapari'){
+    const a = CONTRACTS_META['Guarapari (leve)'][m] || {meta:null,media:null};
+    const b = CONTRACTS_META['Guarapari (pesada)'][m] || {meta:null,media:null};
+    if(a.meta==null && b.meta==null) return {meta:null, media:null};
+    return {meta:(a.meta||0)+(b.meta||0), media:(a.media||0)+(b.media||0)};
+  }
+  const key = store==='Vila Velha' ? 'Vila Velha' : store;
+  return CONTRACTS_META[key] ? CONTRACTS_META[key][m] : {meta:null,media:null};
+}
+
+function hexToRgba(hex, alpha){
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function renderContractsWeekly(mi){
+  const m = MONTHS[mi];
+  let labels = [];
+  COM_STORES.forEach(store=>{
+    (CONTRACTS_ACHIEVED[store][m].leve||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+
+  // cabeçalho: Loja | Métrica | Meta semanal | [semana1] | ... | Total | Meta mensal | Saldo
+  const theadRow = document.getElementById('theadContractsWeekly');
+  theadRow.innerHTML = '<th style="text-align:left;">Loja</th><th style="text-align:left;">Métrica</th><th>Meta semanal</th>'
+    + labels.map(l=>`<th style="border-left:1px solid var(--line);">${l}</th>`).join('')
+    + '<th>Total</th><th>Meta mensal</th><th>Saldo p/ meta</th>';
+
+  function saldoCell(real, meta){
+    if(!meta) return '<td>—</td>';
+    const gap = meta - real;
+    const pct = meta>0 ? real/meta*100 : 0;
+    let cls = 'neg', arrow = '';
+    if(gap<=0){ cls='pos'; arrow = `+${fmtR$(-gap)}`; }
+    else if(pct>=85){ cls='warn-cell'; arrow = `-${fmtR$(gap)}`; }
+    else { cls='neg'; arrow = `-${fmtR$(gap)}`; }
+    return `<td class="${cls}">${arrow}<br><span style="font-size:10px;opacity:.75;">${pct.toFixed(0)}% da meta</span></td>`;
+  }
+  function weekCellValue(value){
+    if(value==null) return '<td style="border-left:1px solid var(--line);">—</td>';
+    return `<td style="border-left:1px solid var(--line);">${fmtR$(value)}</td>`;
+  }
+  function weekCellCount(value){
+    return `<td style="border-left:1px solid var(--line);">${value!=null? fmtInt(value) : '—'}</td>`;
+  }
+  function sumWeeks(arr){ return (arr||[]).reduce((s,w)=> s+(w.value||0), 0); }
+
+  // linha pesada existe só no Guarapari — mas qualquer vendedor (de qualquer loja) que fechar
+  // pesada soma para o Guarapari, nunca para a loja do vendedor. Combinamos aqui as 3 origens.
+  function combinedPesada(key){
+    const merged = {};
+    COM_STORES.forEach(store=>{
+      (key==='count' ? CONTRACTS_COUNT[store][m].pesada : CONTRACTS_ACHIEVED[store][m].pesada || []).forEach(w=>{
+        merged[w.label] = (merged[w.label]||0) + (w.value||0);
+      });
+    });
+    return Object.entries(merged).map(([label,value])=>({label,value}));
+  }
+  const guarapariPesadaValue = combinedPesada('value');
+  const guarapariPesadaCount = combinedPesada('count');
+
+  const rows = [];
+  COM_STORES.forEach(store=>{
+    const data = CONTRACTS_ACHIEVED[store][m] || {leve:[],pesada:[]};
+    const dataC = CONTRACTS_COUNT[store][m] || {leve:[],pesada:[]};
+    const meta = comMeta(store, m);
+    const totalLeveV = sumWeeks(data.leve);
+    const totalLeveC = sumWeeks(dataC.leve);
+    const pesadaValueArr = store==='Guarapari' ? guarapariPesadaValue : [];
+    const pesadaCountArr = store==='Guarapari' ? guarapariPesadaCount : [];
+    const totalPesadaV = sumWeeks(pesadaValueArr);
+    const totalPesadaC = sumWeeks(pesadaCountArr);
+    const totalV = totalLeveV + totalPesadaV;
+
+    const rowFor = (arr, cellFn) => labels.map(l=>{
+      const w = arr.find(x=>x.label===l);
+      return cellFn(w? w.value : null);
+    }).join('');
+
+    const rowspan = store==='Guarapari' ? 5 : 3;
+    const tint = hexToRgba(unitColors[store], 0.06);
+    rows.push(`<tr style="border-left:3px solid ${unitColors[store]};background:${tint};">
+      <td rowspan="${rowspan}" style="color:${unitColors[store]};font-weight:600;vertical-align:middle;background:${tint};">${store}</td>
+      <td style="color:var(--ink-dim);">Contratos leve</td><td>—</td>${rowFor(dataC.leve,weekCellCount)}
+      <td>${fmtInt(totalLeveC)}</td><td>—</td><td>—</td></tr>`);
+    rows.push(`<tr style="border-left:3px solid ${unitColors[store]};background:${tint};">
+      <td style="color:var(--ink-dim);">Valor leve</td><td>—</td>${rowFor(data.leve,weekCellValue)}
+      <td>${fmtR$(totalLeveV)}</td><td>—</td><td>—</td></tr>`);
+    if(store==='Guarapari'){
+      rows.push(`<tr style="border-left:3px solid ${unitColors[store]};background:${tint};">
+        <td style="color:var(--ink-dim);">Contratos pesada <span style="opacity:.6;">(todos os vendedores)</span></td><td>—</td>${rowFor(pesadaCountArr,weekCellCount)}
+        <td>${fmtInt(totalPesadaC)}</td><td>—</td><td>—</td></tr>`);
+      rows.push(`<tr style="border-left:3px solid ${unitColors[store]};background:${tint};">
+        <td style="color:var(--ink-dim);">Valor pesada <span style="opacity:.6;">(todos os vendedores)</span></td><td>—</td>${rowFor(pesadaValueArr,weekCellValue)}
+        <td>${fmtR$(totalPesadaV)}</td><td>—</td><td>—</td></tr>`);
+    }
+    rows.push(`<tr class="saldo-row" style="border-left:3px solid ${unitColors[store]};background:#182236;border-bottom:2px solid ${unitColors[store]};">
+      <td colspan="2" style="font-weight:600;">Total (leve+pesada)</td><td style="color:var(--ink-dim);">${fmtR$(meta.media)}</td>${labels.map(()=>'<td></td>').join('')}
+      <td style="font-weight:600;">${fmtR$(totalV)}</td><td style="color:var(--ink-dim);">${fmtR$(meta.meta)}</td>
+      ${saldoCell(totalV, meta.meta)}</tr>`);
+    rows.push(`<tr style="height:10px;"><td colspan="${5+labels.length}" style="border:none;padding:0;"></td></tr>`);
+  });
+  document.querySelector('#tableContractsWeekly tbody').innerHTML = rows.join('');
+
+  const hasMeta = COM_STORES.some(store=> comMeta(store,m).media!=null);
+  const tfoot = document.querySelector('#tableContractsWeekly tfoot');
+  tfoot.innerHTML = !hasMeta ? `<tr style="color:var(--ink-dim);"><td colspan="${5+labels.length}">Meta de contratos não disponível na planilha para ${m}.</td></tr>` : '';
+}
+
+const WEEK_STORES_FIN = ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pesada)"];
+
+function renderWeeklyRevenue(mi){
+  const m = MONTHS[mi];
+  // union of week labels across the 4 stores for this month (some stores may have fewer/more weeks filled)
+  let labels = [];
+  WEEK_STORES_FIN.forEach(store=>{
+    (WEEKLY_REVENUE[store][m].weeks||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+
+  // cabeçalho: Loja | Meta semanal | [semana1] | [semana2] | ... | Total | Meta mensal | Saldo
+  const theadRow = document.getElementById('theadWeeklyRevenue');
+  theadRow.innerHTML = '<th style="text-align:left;">Loja</th><th>Meta semanal</th>'
+    + labels.map(l=>`<th style="border-left:1px solid var(--line);">${l}</th>`).join('')
+    + '<th>Total</th><th>Meta mensal</th><th>Saldo p/ meta</th>';
+
+  function saldoCell(real, meta){
+    const gap = meta - real;
+    const pct = meta>0 ? real/meta*100 : 0;
+    let cls = 'neg', arrow = '';
+    if(gap<=0){ cls='pos'; arrow = `+${fmtR$(-gap)}`; }
+    else if(pct>=85){ cls='warn-cell'; arrow = `-${fmtR$(gap)}`; }
+    else { cls='neg'; arrow = `-${fmtR$(gap)}`; }
+    return `<td class="${cls}">${arrow}<br><span style="font-size:10px;opacity:.75;">${pct.toFixed(0)}% da meta</span></td>`;
+  }
+  // célula de semana: valor + quanto ficou acima/abaixo da meta semanal (verde/amarelo/vermelho)
+  function weekCell(value, weeklyMeta){
+    if(value==null || !weeklyMeta) return '<td style="border-left:1px solid var(--line);">—</td>';
+    const gap = value - weeklyMeta;
+    const pct = weeklyMeta>0 ? value/weeklyMeta*100 : 0;
+    const diffPct = weeklyMeta>0 ? gap/weeklyMeta*100 : 0;
+    let cls;
+    if(gap>=0) cls='pos'; else if(pct>=85) cls='warn-cell'; else cls='neg';
+    const sign = gap>=0? '+' : '';
+    return `<td class="${cls}" style="border-left:1px solid var(--line);">${fmtR$(value)}<br><span style="font-size:10px;opacity:.8;">${sign}${diffPct.toFixed(0)}%</span></td>`;
+  }
+  // soma real das semanas — o campo .total da planilha vem truncado em meses de 5 semanas, não usar
+  function weekSum(store){
+    return WEEKLY_REVENUE[store][m].weeks.reduce((s,w)=> s+(w.value||0), 0);
+  }
+
+  const bodyRows = WEEK_STORES_FIN.map(store=>{
+    const data = WEEKLY_REVENUE[store][m];
+    const total = weekSum(store);
+    const weekCells = labels.map(l=>{
+      const w = data.weeks.find(x=>x.label===l);
+      return weekCell(w? w.value : null, data.media_semana);
+    }).join('');
+    return `<tr style="border-left:3px solid ${unitColors[store]};">
+      <td style="color:${unitColors[store]};font-weight:600;">${store}</td>
+      <td style="color:var(--ink-dim);">${fmtR$(data.media_semana)}</td>${weekCells}
+      <td>${fmtR$(total)}</td><td style="color:var(--ink-dim);">${fmtR$(data.meta_mes)}</td>
+      ${saldoCell(total, data.meta_mes||0)}</tr>`;
+  }).join('');
+  document.querySelector('#tableWeeklyRevenue tbody').innerHTML = bodyRows;
+
+  // linha de total geral (todas as lojas somadas), no rodapé
+  const totalMediaSemana = WEEK_STORES_FIN.reduce((s,store)=> s+(WEEKLY_REVENUE[store][m].media_semana||0),0);
+  const totalWeekCells = labels.map(l=>{
+    let sum=0, any=false;
+    WEEK_STORES_FIN.forEach(store=>{
+      const w = WEEKLY_REVENUE[store][m].weeks.find(x=>x.label===l);
+      if(w && w.value!=null){ sum+=w.value; any=true; }
+    });
+    return weekCell(any?sum:null, totalMediaSemana);
+  }).join('');
+  const totalReal = WEEK_STORES_FIN.reduce((s,store)=> s+weekSum(store),0);
+  const totalMetaMes = WEEK_STORES_FIN.reduce((s,store)=> s+(WEEKLY_REVENUE[store][m].meta_mes||0),0);
+  document.querySelector('#tableWeeklyRevenue tfoot').innerHTML = `
+    <tr class="saldo-row"><td>Total geral</td><td>${fmtR$(totalMediaSemana)}</td>${totalWeekCells}
+      <td>${fmtR$(totalReal)}</td><td>${fmtR$(totalMetaMes)}</td>${saldoCell(totalReal,totalMetaMes)}</tr>`;
+}
+
+function renderInadimplencia(mi){
+  const m = MONTHS[mi];
+  let labels = [];
+  WEEK_STORES_FIN.forEach(store=>{
+    (WEEKLY_INADIMPLENCIA[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+  const series = WEEK_STORES_FIN.map(store=>{
+    const byLabel = {};
+    (WEEKLY_INADIMPLENCIA[store][m]||[]).forEach(w=> byLabel[w.label]=w.value);
+    return {name:store, color:unitColors[store], values: labels.map(l=>byLabel[l]!=null?byLabel[l]:null)};
+  });
+  barChart('chartInadimplencia', labels, series, {fmt:fmtR$k, w:1000, h:250});
+
+  const tbody = document.querySelector('#tableInadimplencia tbody');
+  tbody.innerHTML = labels.map((l,li)=>{
+    const cellsHtml = WEEK_STORES_FIN.map(store=>{
+      const w = (WEEKLY_INADIMPLENCIA[store][m]||[]).find(x=>x.label===l);
+      return `<td style="border-left:1px solid var(--line);">${w&&w.value!=null? fmtR$(w.value) : '—'}</td>`;
+    }).join('');
+    return `<tr style="background:${li%2? '#141c2b':'#161f30'};"><td>${l}</td>${cellsHtml}</tr>`;
+  }).join('');
+
+  const tfoot = document.querySelector('#tableInadimplencia tfoot');
+  const mediaRow = WEEK_STORES_FIN.map(store=> `<td>${fmtR$(WEEKLY_REVENUE[store][m].media_semana)}</td>`).join('');
+  tfoot.innerHTML = `<tr style="color:var(--ink-dim);"><td>Meta financeira semanal</td>${mediaRow}</tr>`;
+}
+
+function renderTableFin(){
+  const units = Object.keys(FIN.revenue);
+  document.querySelector('#tableFin tbody').innerHTML = MONTHS.map((m,i)=>{
+    const real = units.reduce((s,u)=>s+FIN.revenue[u][i],0);
+    const meta = units.reduce((s,u)=>s+FIN.meta[u][i],0);
+    const desvio = real-meta;
+    return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
+      <td>${fmtR$(real)}</td><td>${fmtR$(meta)}</td>
+      <td class="${desvio>=0?'pos':'neg'}">${desvio>=0?'+':''}${fmtR$(desvio)}</td></tr>`;
+  }).join('');
+}
+
+// =================================================================
+// COMERCIAL
+// =================================================================
+function renderComKPIs(mi){
+  const conv = COM.oportGanhas[mi]/(COM.oportGanhas[mi]+COM.oportPerdidas[mi])*100;
+  const cards = [
+    {label:"Contatos criados ("+MONTHS[mi]+")", value: fmtInt(COM.contatos[mi]), sub:"novos contatos no funil", cls:""},
+    {label:"Oportunidades criadas", value: fmtInt(COM.oportCriadas[mi]), sub:"entraram no funil comercial", cls:""},
+    {label:"Taxa de conversão", value: conv.toFixed(1)+"%", sub: fmtInt(COM.oportGanhas[mi])+" ganhas / "+fmtInt(COM.oportPerdidas[mi])+" perdidas", cls: conv>=50?"up":"down"},
+    {label:"Contratos fechados", value: fmtInt(COM.contratosFechados[mi]), sub:"linha leve, no mês", cls:""}
+  ];
+  document.getElementById('kpiCom').innerHTML = cards.map(c=>`
+    <div class="kpi"><div class="label">${c.label}</div><div class="value">${c.value}</div>
+    <div class="sub ${c.cls}">${c.sub}</div></div>`).join('');
+}
+
+// gráfico composto: barras em dois eixos (esquerda/direita) + linha — usado no teste de Contratos fechados
+function comboBarLineChart(containerId, categories, bars, line, opts){
+  opts = opts || {};
+  const w = opts.w||520, h = opts.h||260;
+  const padL=54, padR=54, padT=14, padB=28;
+  const plotW = w-padL-padR, plotH = h-padT-padB;
+  const leftBars = bars.filter(b=>b.axis!=='right');
+  const rightBars = bars.filter(b=>b.axis==='right');
+  const leftVals = [...leftBars.flatMap(b=>b.values), ...(line.axis!=='right'? line.values:[])].filter(v=>v!=null);
+  const rightVals = [...rightBars.flatMap(b=>b.values), ...(line.axis==='right'? line.values:[])].filter(v=>v!=null);
+  const maxLeft = Math.max(1, ...leftVals)*1.15;
+  const maxRight = rightVals.length? Math.max(1, ...rightVals)*1.15 : 1;
+  const svg = svgRoot(w,h);
+
+  for(let i=0;i<=4;i++){
+    const y = padT + plotH - (plotH*i/4);
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'axis-line'}));
+    const tl = el('text',{x:padL-6,y:y+3,'text-anchor':'end',class:'bar-label'});
+    tl.textContent = opts.fmtLeft ? opts.fmtLeft(maxLeft*i/4) : Math.round(maxLeft*i/4);
+    svg.appendChild(tl);
+    if(rightBars.length || line.axis==='right'){
+      const tr = el('text',{x:w-padR+6,y:y+3,'text-anchor':'start',class:'bar-label'});
+      tr.textContent = opts.fmtRight ? opts.fmtRight(maxRight*i/4) : Math.round(maxRight*i/4);
+      svg.appendChild(tr);
+    }
+  }
+
+  const groupW = plotW/categories.length, gap=6;
+  const barW = (groupW - gap*(bars.length+1)) / bars.length;
+  categories.forEach((cat,ci)=>{
+    bars.forEach((b,bi)=>{
+      const v = b.values[ci];
+      const maxV = b.axis==='right'? maxRight : maxLeft;
+      const bh = v==null? 0 : (v/maxV)*plotH;
+      const x = padL + ci*groupW + gap + bi*(barW+gap);
+      const y = padT + plotH - bh;
+      const rect = el('rect',{x,y,width:Math.max(barW,1),height:bh,fill: v==null?'#26324a':ensureBarGradient(svg,b.color,true),rx:5});
+      bindTip(rect, ()=> `<strong>${b.name}</strong><br>${cat}: ${v==null?'sem dado':(b.fmt?b.fmt(v):v)}`);
+      svg.appendChild(rect);
+      if(v!=null){
+        const labelText = b.shortFmt ? b.shortFmt(v) : (b.fmt? b.fmt(v) : v);
+        const lbl = el('text',{x:x+barW/2, y:Math.max(y-5, padT+9), 'text-anchor':'middle',
+          style:'font-size:8.5px;fill:'+b.color+';font-family:var(--mono);paint-order:stroke;stroke:#0e1420;stroke-width:3px;'});
+        lbl.textContent = labelText;
+        svg.appendChild(lbl);
+      }
+    });
+    const t = el('text',{x: padL+ci*groupW+groupW/2, y: h-8, 'text-anchor':'middle', class:'bar-label'});
+    t.textContent = cat; svg.appendChild(t);
+  });
+
+  // linha
+  const maxLine = line.axis==='right'? maxRight : maxLeft;
+  const linePts = [];
+  categories.forEach((cat,ci)=>{
+    const v = line.values[ci];
+    if(v==null) return;
+    linePts.push({x: padL + ci*groupW + groupW/2, y: padT + plotH - (v/maxLine)*plotH});
+  });
+  const d = smoothPath(linePts);
+  const path = el('path',{d, fill:'none', stroke:line.color, 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round', filter:ensureGlow(svg,line.color)});
+  svg.appendChild(path);
+  categories.forEach((cat,ci)=>{
+    const v = line.values[ci];
+    if(v==null) return;
+    const x = padL + ci*groupW + groupW/2;
+    const y = padT + plotH - (v/maxLine)*plotH;
+    const c = el('circle',{cx:x,cy:y,r:4,fill:line.color,stroke:'#0a0f1a','stroke-width':1.5});
+    svg.appendChild(c);
+    const lblLine = el('text',{x, y:y+16, 'text-anchor':'middle',
+      style:'font-size:9px;font-weight:600;fill:'+line.color+';font-family:var(--mono);paint-order:stroke;stroke:#0e1420;stroke-width:3px;'});
+    lblLine.textContent = line.shortFmt ? line.shortFmt(v) : (line.fmt? line.fmt(v) : v);
+    svg.appendChild(lblLine);
+    const hit = el('circle',{cx:x,cy:y,r:10,fill:'transparent',style:'cursor:pointer;'});
+    hit.addEventListener('mouseenter', e=> showTip(e, `<strong>${line.name}</strong><br>${cat}: ${line.fmt?line.fmt(v):v}`));
+    hit.addEventListener('mousemove', positionTip);
+    hit.addEventListener('mouseleave', hideTip);
+    svg.appendChild(hit);
+  });
+
+  const container = document.getElementById(containerId);
+  container.innerHTML=''; container.appendChild(svg);
+  drawLegend(container, [...bars, line]);
+}
+
+function renderComCharts(){
+  barChart('chartFunilCriadas', MONTHS, [
+    {name:'Contatos', color:'#6a9bff', values: COM.contatos},
+    {name:'Oportunidades', color:'#f0b45e', values: COM.oportCriadas}
+  ]);
+  // valor total mensal (linha leve, somando as 3 lojas) + ticket médio, a partir dos dados já carregados
+  const valorLeveMensal = MONTHS.map(m=>{
+    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].leve||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+  });
+  const ticketMedio = MONTHS.map((_,i)=> COM.contratosFechados[i]>0 ? valorLeveMensal[i]/COM.contratosFechados[i] : null);
+  comboBarLineChart('chartContratos', MONTHS,
+    [
+      {name:'Contratos fechados (nº)', color:'#6a9bff', values: COM.contratosFechados, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
+      {name:'Valor total', color:'#f0b45e', values: valorLeveMensal, axis:'right', fmt:fmtR$, shortFmt:fmtR$k}
+    ],
+    {name:'Ticket médio', color:'#4fd399', values: ticketMedio, axis:'left', fmt:fmtR$, shortFmt:v=>'R$'+Math.round(v)},
+    {fmtLeft:fmtInt, fmtRight:fmtR$k}
+  );
+
+  // mesmo gráfico, agora para linha pesada
+  const contratosPesadaMensal = MONTHS.map(m=>{
+    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_COUNT[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+  });
+  const valorPesadaMensal = MONTHS.map(m=>{
+    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+  });
+  const ticketMedioPesada = MONTHS.map((_,i)=> contratosPesadaMensal[i]>0 ? valorPesadaMensal[i]/contratosPesadaMensal[i] : null);
+  comboBarLineChart('chartContratosPesada', MONTHS,
+    [
+      {name:'Contratos fechados (nº)', color:'#6a9bff', values: contratosPesadaMensal, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
+      {name:'Valor total', color:'#f0b45e', values: valorPesadaMensal, axis:'right', fmt:fmtR$, shortFmt:fmtR$k}
+    ],
+    {name:'Ticket médio', color:'#4fd399', values: ticketMedioPesada, axis:'left', fmt:fmtR$, shortFmt:v=>'R$'+Math.round(v)},
+    {fmtLeft:fmtInt, fmtRight:fmtR$k}
+  );
+
+  const conv = MONTHS.map((_,i)=> COM.oportCriadas[i]>0 ? COM.contratosFechados[i]/COM.oportCriadas[i]*100 : null);
+  lineChart('chartConversao', MONTHS, [{name:'Taxa de conversão', color:'#4fd399', values: conv}], {fmt:v=>v.toFixed(1)+'%', max:100, showLabels:true});
+
+  renderConversaoPropostas();
+
+  lineChart('chartCadastros', MONTHS, [{name:'Cadastros', color:'#6a9bff', values: COM.cadastros}], {fmt:fmtInt, showLabels:true});
+}
+
+// conversão de propostas → contratos, por loja (leve e pesada), um mini-gráfico
+// por loja pra não embolar. Só mostra o mês quando propostas >= contratos
+// (senão o percentual passaria de 100%, o que não faz sentido aqui).
+function renderConversaoPropostas(){
+  const stores = [
+    {key:'Guarapari', containerId:'chartConvGuarapari'},
+    {key:'Serra', containerId:'chartConvSerra'},
+    {key:'Vila Velha', containerId:'chartConvVilaVelha'}
+  ];
+  function monthSum(obj, store, m, linha){
+    const arr = linha ? (obj[store][m] && obj[store][m][linha] || []) : (obj[store][m] || []);
+    return arr.reduce((s,w)=>s+(w.value||0),0);
+  }
+  stores.forEach(({key:store, containerId})=>{
+    // leve: contratos ÷ oportunidades da loja
+    const leveConv = MONTHS.map(m=>{
+      const oport = monthSum(OPORTUNIDADES_COUNT, store, m, null);
+      const contr = monthSum(CONTRACTS_COUNT, store, m, 'leve');
+      return oport>0 ? contr/oport*100 : null;
+    });
+    // pesada: contratos ÷ propostas (só quando propostas >= contratos)
+    const pesadaConv = MONTHS.map(m=>{
+      const props = monthSum(PROPOSTAS_COUNT, store, m, 'pesada');
+      const contr = monthSum(CONTRACTS_COUNT, store, m, 'pesada');
+      return (props>0 && props>=contr) ? contr/props*100 : null;
+    });
+    const series = [{name:'Leve', color:'#6a9bff', values: leveConv, fmt:v=>v.toFixed(0)+'%'}];
+    if(store==='Guarapari') series.push({name:'Pesada', color:'#d68bff', values: pesadaConv, fmt:v=>v.toFixed(0)+'%'});
+    lineChart(containerId, MONTHS, series, {w:340,h:220,fmt:v=>v.toFixed(0)+'%', max:100, showLabels:true});
+  });
+}
+
+// horizontal stacked bar chart — good for rankings with several categories (labels don't collide)
+function hBarStackedChart(containerId, categories, series, opts){
+  opts = opts || {};
+  const w = opts.w||1000;
+  const rowH = opts.rowH||28, gap=10;
+  const padL=opts.padL||110, padR=70, padT=10, padB=10;
+  const plotW = w-padL-padR;
+  const h = padT+padB+categories.length*(rowH+gap);
+  const totals = categories.map((_,ci)=> series.reduce((s,ser)=> s+(ser.values[ci]||0), 0));
+  const maxV = opts.max || Math.max(1, ...totals) * 1.12;
+  const svg = svgRoot(w,h);
+
+  // vertical gridlines
+  for(let i=0;i<=4;i++){
+    const x = padL + plotW*i/4;
+    svg.appendChild(el('line',{x1:x,x2:x,y1:padT,y2:h-padB,class:'axis-line'}));
+  }
+
+  categories.forEach((cat,ci)=>{
+    const y = padT + ci*(rowH+gap);
+    const label = el('text',{x:padL-8,y:y+rowH/2+4,'text-anchor':'end',class:'bar-label'});
+    label.textContent = cat; svg.appendChild(label);
+    let x0 = padL;
+    series.forEach(ser=>{
+      const v = ser.values[ci]||0;
+      const bw = (v/maxV)*plotW;
+      if(bw>0){
+        const rect = el('rect',{x:x0,y,width:bw,height:rowH,fill:ensureBarGradient(svg,ser.color,false),rx:5});
+        bindTip(rect, ()=> `<strong>${cat}</strong><br>${ser.name}: ${opts.fmt?opts.fmt(v):v}`);
+        svg.appendChild(rect);
+      }
+      x0 += bw;
+    });
+    const totalLbl = el('text',{x:x0+6,y:y+rowH/2+4,class:'bar-label'});
+    totalLbl.textContent = opts.fmt? opts.fmt(totals[ci]) : totals[ci];
+    svg.appendChild(totalLbl);
+  });
+
+  const container = document.getElementById(containerId);
+  container.innerHTML=''; container.appendChild(svg);
+  if(series.length>1) drawLegend(container, series);
+}
+
+function renderSellerRanking(mi){
+  const m = MONTHS[mi];
+  const data = SELLERS[m] || {};
+  const allRows = Object.entries(data).filter(([name,st])=> st.contratosLeve>0 || st.contratosPesada>0);
+
+  if(allRows.length===0){
+    document.getElementById('chartRankingLeve').innerHTML = `<div style="color:var(--ink-dim);font-size:12px;padding:20px 0;">Sem dados individuais de vendedor para ${m}${PARTIAL[m]?' (mês parcial)':''}.</div>`;
+    document.getElementById('chartRankingPesada').innerHTML = '';
+    document.querySelector('#tableRanking tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);">Sem dados individuais de vendedor para ${m}${PARTIAL[m]?' (mês parcial)':''}.</td></tr>`;
+    return;
+  }
+
+  // ranking linha leve — ordenado pelo próprio valor leve
+  const leveRows = allRows.filter(([,st])=> st.valorLeve>0).sort((a,b)=> b[1].valorLeve - a[1].valorLeve);
+  if(leveRows.length){
+    hBarStackedChart('chartRankingLeve', leveRows.map(([name])=>name), [
+      {name:'Valor leve', color:'#6a9bff', values: leveRows.map(([,st])=>st.valorLeve)}
+    ], {fmt:fmtR$, w:480, rowH:24});
+  } else {
+    document.getElementById('chartRankingLeve').innerHTML = `<div style="color:var(--ink-dim);font-size:12px;padding:10px 0;">Sem vendas de linha leve em ${m}.</div>`;
+  }
+
+  // ranking linha pesada — ordenado pelo próprio valor pesada
+  const pesadaRows = allRows.filter(([,st])=> st.valorPesada>0).sort((a,b)=> b[1].valorPesada - a[1].valorPesada);
+  if(pesadaRows.length){
+    hBarStackedChart('chartRankingPesada', pesadaRows.map(([name])=>name), [
+      {name:'Valor pesada', color:'#d68bff', values: pesadaRows.map(([,st])=>st.valorPesada)}
+    ], {fmt:fmtR$, w:480, rowH:24});
+  } else {
+    document.getElementById('chartRankingPesada').innerHTML = `<div style="color:var(--ink-dim);font-size:12px;padding:10px 0;">Sem vendas de linha pesada em ${m}.</div>`;
+  }
+
+  // tabela combinada, ordenada por valor total (leve+pesada)
+  const rows = [...allRows].sort((a,b)=> (b[1].valorLeve+b[1].valorPesada) - (a[1].valorLeve+a[1].valorPesada));
+  const tbody = document.querySelector('#tableRanking tbody');
+  tbody.innerHTML = rows.map(([name,st],i)=>{
+    const totalValor = st.valorLeve + st.valorPesada;
+    return `<tr><td>${i+1}</td><td>${name}</td><td>${fmtInt(st.contratosLeve)}</td>
+      <td>${fmtR$(st.valorLeve)}</td><td>${fmtInt(st.contratosPesada)}</td>
+      <td>${fmtR$(st.valorPesada)}</td><td style="font-weight:600;">${fmtR$(totalValor)}</td></tr>`;
+  }).join('');
+}
+
+function renderTableCom(){
+  document.querySelector('#tableCom tbody').innerHTML = MONTHS.map((m,i)=>{
+    const conv = COM.oportGanhas[i]/(COM.oportGanhas[i]+COM.oportPerdidas[i])*100;
+    return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
+      <td>${fmtInt(COM.contatos[i])}</td><td>${fmtInt(COM.oportCriadas[i])}</td>
+      <td class="pos">${fmtInt(COM.oportGanhas[i])}</td><td class="neg">${fmtInt(COM.oportPerdidas[i])}</td>
+      <td>${conv.toFixed(1)}%</td><td>${fmtInt(COM.contratosFechados[i])}</td></tr>`;
+  }).join('');
+}
+
+// =================================================================
+// OPERACIONAL
+// =================================================================
+function renderOpKPIs(mi){
+  const m = MONTHS[mi];
+  const stores = ["Guarapari","Serra","Vila Velha"];
+  const metaIdx = OP.metaMaquinasMeses.indexOf(m);
+
+  function lastVal(arr, key){
+    const w = [...(arr||[])].reverse().find(x=> x[key]!=null);
+    return w? w[key] : null;
+  }
+
+  const cards = stores.map(store=>{
+    const weeks = WEEKLY_OPERATIONAL[store][m] || [];
+    const corretivas = weeks.reduce((s,w)=> s+(w.corretivas||0), 0);
+    // OS abertas é posição (foto da última semana), não soma das semanas
+    const osTotal = lastVal(weeks,'os') || 0;
+
+    const fleetWeeks = WEEKLY_FLEET[store][m] || [];
+    const totalLeve = lastVal(fleetWeeks,'totalLeve');
+    const alugLeve = lastVal(fleetWeeks,'alugadasLeve');
+    const manutWeeks = WEEKLY_MANUT_MAQUINAS[store][m] || [];
+    const manutLeve = lastVal(manutWeeks,'value');
+
+    let ocupLeve = null;
+    if(totalLeve!=null && alugLeve!=null){
+      const bruta = alugLeve/totalLeve*100;
+      const disponiveis = manutLeve!=null? totalLeve-manutLeve : null;
+      const liquida = disponiveis? alugLeve/disponiveis*100 : null;
+      ocupLeve = {bruta, liquida};
+    }
+
+    let ocupPesada = null;
+    if(store==='Guarapari'){
+      const totalPesada = lastVal(fleetWeeks,'totalPesada');
+      const alugPesada = lastVal(fleetWeeks,'alugadasPesada');
+      const manutPesada = MANUT_PESADA_REAL.Guarapari[mi];
+      if(totalPesada){
+        const bruta = alugPesada/totalPesada*100;
+        const disponiveis = manutPesada!=null? totalPesada-manutPesada : null;
+        const liquida = disponiveis? alugPesada/disponiveis*100 : null;
+        ocupPesada = {bruta, liquida};
+      }
+    }
+
+    let metaLine = '', cls = '';
+    if(metaIdx>=0 && manutLeve!=null){
+      const meta = OP.metaMaquinas[store][metaIdx];
+      const diff = manutLeve - meta;
+      cls = diff<=0? 'up' : (diff/meta<=0.10? 'warn':'down');
+      metaLine = `<br>Manutenção leve: ${fmtInt(manutLeve)} (meta ${fmtInt(meta)}) · ${diff<=0?'dentro da meta':'+'+fmtInt(diff)+' acima'}`;
+    }
+
+    let value, sub;
+    if(store==='Guarapari'){
+      value = (ocupLeve&&ocupLeve.liquida!=null)? ocupLeve.liquida.toFixed(1)+'% líq. leve' : (osTotal+' OS');
+      sub = `<strong>Leve</strong> — bruta: ${(ocupLeve&&ocupLeve.bruta!=null)?ocupLeve.bruta.toFixed(1)+'%':'—'} · líquida: ${(ocupLeve&&ocupLeve.liquida!=null)?ocupLeve.liquida.toFixed(1)+'%':'—'}<br>`
+          + `<strong>Pesada</strong> — bruta: ${(ocupPesada&&ocupPesada.bruta!=null)?ocupPesada.bruta.toFixed(1)+'%':'—'} · líquida: ${(ocupPesada&&ocupPesada.liquida!=null)?ocupPesada.liquida.toFixed(1)+'%':'—'}<br>`
+          + `${fmtInt(corretivas)} corretivas · ${fmtInt(osTotal)} OS abertas` + metaLine;
+    } else {
+      value = (ocupLeve&&ocupLeve.liquida!=null)? ocupLeve.liquida.toFixed(1)+'% líquida' : (osTotal+' OS');
+      sub = `Bruta: ${(ocupLeve&&ocupLeve.bruta!=null)?ocupLeve.bruta.toFixed(1)+'%':'—'} · Líquida: ${(ocupLeve&&ocupLeve.liquida!=null)?ocupLeve.liquida.toFixed(1)+'%':'—'}<br>`
+          + `${fmtInt(corretivas)} corretivas · ${fmtInt(osTotal)} OS abertas` + metaLine;
+    }
+    return {label:store, value, sub, cls};
+  });
+
+  document.getElementById('kpiOp').innerHTML = cards.map(c=>`
+    <div class="kpi" style="border-left:3px solid ${unitColors[c.label]};">
+      <div class="label" style="color:${unitColors[c.label]};">${c.label}</div>
+      <div class="value" style="font-size:17px;">${c.value}</div>
+      <div class="sub ${c.cls}">${c.sub}</div></div>`).join('');
+}
+
+function renderFleet(mi){
+  const fleetUnits = ["Guarapari","Serra","Vila Velha"];
+  barChart('chartFleet', fleetUnits,
+    [{name:'% locada', color:'#6a9bff', values: fleetUnits.map(u=>OP.fleetOccupancy[u][mi])}],
+    {fmt:v=>Math.round(v)+'%', max:60});
+  document.querySelectorAll('#chartFleet rect').forEach((r,i)=>{ r.setAttribute('fill', unitColors[fleetUnits[i]]); });
+}
+
+function renderMetaMaquinas(){
+  // um gráfico por loja: meta (Mai-Dez, tracejada) e real (sólida) — separados para não embolar
+  const cats = OP.metaMaquinasMeses;
+  const units = [
+    {key:"Guarapari", containerId:"chartMetaGuarapari"},
+    {key:"Serra", containerId:"chartMetaSerra"},
+    {key:"Vila Velha", containerId:"chartMetaVilaVelha"},
+  ];
+  units.forEach(({key:u, containerId})=>{
+    const realVals = cats.map(m=>{ const mi = MONTHS.indexOf(m); return mi>=0? OP.manutReal[u][mi] : null; });
+    const series = [
+      {name:'Meta', color: '#f0b45e', dash:'4,3', values: OP.metaMaquinas[u]},
+      {name:'Real', color: '#6a9bff', values: realVals},
+    ];
+    lineChart(containerId, cats, series, {w:340,h:230,fmt:v=>Math.round(v), showLabels:true});
+  });
+}
+
+function renderManutReal(mi){
+  const units = ["Guarapari","Serra","Vila Velha"];
+  barChart('chartManutReal', units,
+    [{name:'Máquinas em manutenção', color:'#6a9bff', values: units.map(u=>OP.manutReal[u][mi])}]);
+  document.querySelectorAll('#chartManutReal rect').forEach((r,i)=>{ r.setAttribute('fill', unitColors[units[i]]); });
+}
+
+function renderManutWeekly(mi){
+  const m = MONTHS[mi];
+  const stores = WEEK_STORES_OP; // Guarapari, Serra, Vila Velha
+  let labels = [];
+  stores.forEach(store=>{
+    (WEEKLY_MANUT_MAQUINAS[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+
+  const theadRow = document.getElementById('theadManutWeekly');
+  theadRow.innerHTML = '<th style="text-align:left;">Loja</th>'
+    + labels.map(l=>`<th style="border-left:1px solid var(--line);">${l}</th>`).join('')
+    + '<th>Meta do mês</th><th>Final do mês vs. meta</th>';
+
+  const metaIdx = OP.metaMaquinasMeses.indexOf(m);
+  const hasMeta = metaIdx >= 0;
+
+  function cellVsMeta(value, meta, isWeek){
+    const bl = isWeek ? 'border-left:1px solid var(--line);' : '';
+    if(value==null) return `<td style="${bl}">—</td>`;
+    if(meta==null) return `<td style="${bl}">${fmtInt(value)}</td>`;
+    const diff = value - meta;
+    const pct = meta>0 ? diff/meta*100 : 0;
+    let cls;
+    if(diff<=0) cls='pos'; else if(pct<=10) cls='warn-cell'; else cls='neg';
+    return `<td class="${cls}" style="${bl}">${fmtInt(value)}<br><span style="font-size:10px;opacity:.8;">${diff>0?'+':''}${pct.toFixed(0)}%</span></td>`;
+  }
+
+  const rows = stores.map(store=>{
+    const weeks = WEEKLY_MANUT_MAQUINAS[store][m] || [];
+    const meta = hasMeta ? OP.metaMaquinas[store][metaIdx] : null;
+    const weekCells = labels.map(l=>{
+      const w = weeks.find(x=>x.label===l);
+      return cellVsMeta(w? w.value : null, meta, true);
+    }).join('');
+    // última semana com valor real = onde a loja "fechou" o mês
+    const lastWeek = [...weeks].reverse().find(w=> w.value!=null);
+    const finalCell = cellVsMeta(lastWeek? lastWeek.value : null, meta);
+    return `<tr style="border-left:3px solid ${unitColors[store]};">
+      <td style="color:${unitColors[store]};font-weight:600;">${store}</td>${weekCells}
+      <td style="color:var(--ink-dim);">${meta!=null? fmtInt(meta) : '—'}</td>${finalCell}</tr>`;
+  }).join('');
+  document.querySelector('#tableManutWeekly tbody').innerHTML = rows;
+}
+
+const WEEK_STORES_OP = ["Guarapari","Serra","Vila Velha"];
+
+function renderWeeklyOp(mi){
+  const m = MONTHS[mi];
+  let labels = [];
+  WEEK_STORES_OP.forEach(store=>{
+    (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+  const series = WEEK_STORES_OP.map(store=>{
+    const byLabel = {};
+    (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=> byLabel[w.label]=w.os);
+    return {name:store+' · OS', color:unitColors[store], values: labels.map(l=>byLabel[l]!=null?byLabel[l]:null)};
+  });
+  barChart('chartWeeklyOp', labels, series, {w:1000, h:250});
+
+  const tbody = document.querySelector('#tableWeeklyOp tbody');
+  tbody.innerHTML = labels.map((l,li)=>{
+    const cellsHtml = WEEK_STORES_OP.map(store=>{
+      const w = (WEEKLY_OPERATIONAL[store][m]||[]).find(x=>x.label===l);
+      return `<td style="border-left:1px solid var(--line);">${w&&w.os!=null?fmtInt(w.os):'—'}</td><td>${w&&w.corretivas!=null?fmtInt(w.corretivas):'—'}</td>`;
+    }).join('');
+    return `<tr style="background:${li%2? '#141c2b':'#161f30'};"><td>${l}</td>${cellsHtml}</tr>`;
+  }).join('');
+}
+
+function renderMaint(){ barChart('chartMaint', MONTHS, [{name:'Corretivas', color:'#f0715a', values: OP.maintenance}]); }
+function renderOS(){ barChart('chartOS', MONTHS, [{name:'OS abertas', color:'#6a9bff', values: OP.osOpened}]); }
+
+function renderTableOp(){
+  const occUnits = ["Guarapari","Serra","Vila Velha"];
+  document.querySelector('#tableOp tbody').innerHTML = MONTHS.map((m,i)=>{
+    const occ = occUnits.map(u=>OP.fleetOccupancy[u][i]).filter(v=>v!=null);
+    const occAvg = occ.length? occ.reduce((a,b)=>a+b,0)/occ.length : null;
+    return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
+      <td>${fmtInt(OP.maintenance[i])}</td>
+      <td>${OP.osOpened[i]!=null? fmtInt(OP.osOpened[i]):'—'}</td>
+      <td>${occAvg!=null? occAvg.toFixed(1)+'%':'—'}</td></tr>`;
+  }).join('');
+}
+
+// =================================================================
+// render orchestration
+// =================================================================
+function renderAll(){
+  const mi = parseInt(sel.value);
+  renderFinKPIs(mi); renderWeeklyRevenue(mi); renderInadimplencia(mi);
+  renderComKPIs(mi); renderSellerRanking(mi); renderContractsWeekly(mi);
+  renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi);
+}
+sel.addEventListener('change', renderAll);
+
+// renderiza tudo (dependente do mês + gráficos anuais fixos) — chamado
+// toda vez que novos dados chegam do Apps Script
+function renderAllData(){
+  renderAll();
+  renderRevTrend(); renderTableFin();
+  renderComCharts(); renderTableCom();
+  renderMetaMaquinas(); renderMaint(); renderOS(); renderTableOp();
+}
+
+// =================================================================
+// DADOS EM TEMPO REAL — Google Apps Script + JSONP
+// Mesmo mecanismo usado nos painéis de RH/Inadimplentes: tag <script>
+// dinâmica com callback global (nunca bloqueado por CORS, mesmo em
+// ambientes restritos), com timeout e Promise. Diferença: aqui o Apps
+// Script já devolve os dados interpretados (ver Code.gs), porque a
+// planilha do Brasmetal tem células mescladas e regras de negócio que
+// não dá pra reproduzir de forma segura só com JS no navegador.
+// =================================================================
+
+const APPS_SCRIPT_URL_STORAGE_KEY = 'brasmetal_apps_script_url';
+let APPS_SCRIPT_URL = "";
+
+const urlInput = document.getElementById('appsScriptUrlInput');
+const btnSalvarUrl = document.getElementById('btnSalvarUrl');
+const linkTestar = document.getElementById('testarLinkNovaAba');
+const urlSalvaStatus = document.getElementById('urlSalvaStatus');
+const btnFonteDados = document.getElementById('btnFonteDados');
+const painelFonteDados = document.getElementById('painelFonteDados');
+if(btnFonteDados && painelFonteDados){
+  btnFonteDados.addEventListener('click', ()=>{
+    const aberto = painelFonteDados.style.display !== 'none';
+    painelFonteDados.style.display = aberto ? 'none' : 'block';
+    btnFonteDados.style.background = aberto ? 'var(--panel-2)' : 'var(--blue)';
+  });
+}
+
+// carrega a URL salva neste navegador (se houver); senão, usa a URL padrão
+// já pré-preenchida no campo (value= no HTML) — assim funciona pra todo
+// mundo desde o primeiro acesso, sem precisar colar nada
+function carregarUrlSalva(){
+  let salva = '';
+  try { salva = localStorage.getItem(APPS_SCRIPT_URL_STORAGE_KEY) || ''; } catch(e){ /* storage indisponível — segue sem persistir */ }
+  if(salva){
+    APPS_SCRIPT_URL = salva;
+    if(urlInput) urlInput.value = salva;
+    if(urlSalvaStatus) urlSalvaStatus.textContent = 'URL carregada deste navegador.';
+  } else if(urlInput && urlInput.value.trim()){
+    APPS_SCRIPT_URL = urlInput.value.trim();
+    if(urlSalvaStatus) urlSalvaStatus.textContent = 'Usando a URL padrão do painel.';
+  }
+  atualizarLinkTestar();
+}
+function salvarUrl(url){
+  APPS_SCRIPT_URL = url;
+  try { localStorage.setItem(APPS_SCRIPT_URL_STORAGE_KEY, url); } catch(e){ /* storage indisponível — funciona só nesta sessão */ }
+  atualizarLinkTestar();
+}
+function atualizarLinkTestar(){
+  if(!linkTestar) return;
+  linkTestar.href = APPS_SCRIPT_URL || '#';
+}
+if(urlInput){
+  urlInput.addEventListener('input', ()=>{
+    if(linkTestar) linkTestar.href = (urlInput.value || '').trim() || '#';
+  });
+}
+if(btnSalvarUrl){
+  btnSalvarUrl.addEventListener('click', ()=>{
+    const url = (urlInput && urlInput.value || '').trim();
+    if(!url){
+      if(urlSalvaStatus){ urlSalvaStatus.style.color = 'var(--red)'; urlSalvaStatus.textContent = 'Cole a URL do Apps Script antes de atualizar.'; }
+      return;
+    }
+    salvarUrl(url);
+    if(urlSalvaStatus){ urlSalvaStatus.style.color = 'var(--green)'; urlSalvaStatus.textContent = 'URL salva neste navegador — buscando dados...'; }
+    refreshDashboard({silent:false});
+  });
+}
+carregarUrlSalva();
+
+const btnAtualizar = document.getElementById('btnAtualizar');
+const updateStatus = document.getElementById('updateStatus');
+let atualizacaoEmAndamento = false;
+let ultimaAtualizacaoOk = null; // Date da última atualização bem-sucedida
+
+function formatarDataHora(d){
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' +
+         d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// fetchLatestData(): busca os dados atuais das duas planilhas, via o Apps
+// Script, usando JSONP (tag <script> + callback global) — o mesmo mecanismo
+// usado no RH/Inadimplentes, robusto a bloqueio de CORS.
+function fetchLatestData(timeoutMs){
+  timeoutMs = timeoutMs || 55000; // agora lê duas planilhas inteiras (9+ abas cada) — precisa de mais tempo
+  return new Promise((resolve, reject)=>{
+    if(!APPS_SCRIPT_URL){
+      reject(new Error('Nenhuma URL de Apps Script configurada ainda — cole a URL de implantação (/exec) no campo acima do painel e clique em "Atualizar Dados em Tempo Real".'));
+      return;
+    }
+    const cbName = 'brasmetalJSONP_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+    let concluido = false;
+    const script = document.createElement('script');
+    script.id = 'jsonp-script-tag-brasmetal';
+
+    function limpar(){
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){ window[cbName] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    const timer = setTimeout(()=>{
+      if(concluido) return;
+      concluido = true;
+      limpar();
+      reject(new Error('Tempo limite excedido ao conectar ao Apps Script (' + Math.round(timeoutMs/1000) + 's). Isso pode ser só demora — o Apps Script agora lê duas planilhas inteiras. Se persistir, confira: 1) a URL termina em "/exec"; 2) a implantação está "Executar como: Eu" e "Quem pode acessar: Qualquer pessoa"; 3) sua rede permite acesso a script.google.com.'));
+    }, timeoutMs);
+
+    window[cbName] = function(payload){
+      if(concluido) return;
+      concluido = true;
+      limpar();
+      if(!payload){ reject(new Error('O Apps Script respondeu vazio.')); return; }
+      if(payload.status === 'error'){ reject(new Error(payload.message || 'Erro desconhecido no Apps Script.')); return; }
+      resolve(payload);
+    };
+
+    const anterior = document.getElementById('jsonp-script-tag-brasmetal');
+    if(anterior) anterior.remove();
+
+    const sep = APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&';
+    script.src = APPS_SCRIPT_URL + sep + 'callback=' + cbName;
+    script.onerror = function(){
+      if(concluido) return;
+      concluido = true;
+      limpar();
+      reject(new Error('Falha ao carregar o script do Apps Script. Verifique se a implantação está pública ("Qualquer pessoa").'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// refreshDashboard(): busca, processa (os dados já vêm processados) e
+// atualiza o estado + a tela. Em caso de erro, os dados atuais permanecem
+// intactos — nunca apaga nem deixa o painel em branco.
+// -------------------------------------------------------------------
+// ensureShape(): garante que toda estrutura de dados tenha as chaves de
+// loja esperadas (Guarapari, Guarapari (leve), Guarapari (pesada), Serra,
+// Vila Velha) ANTES de qualquer atribuição/renderização — mesmo que o
+// payload do Apps Script venha incompleto. Importante: só garante as
+// CHAVES DE LOJA (nível raso) — o conteúdo de cada loja (arrays de
+// semanas, objetos por mês etc.) vem intacto do payload, sem mesclagem
+// profunda, pra nunca transformar um array em outra coisa por engano.
+// -------------------------------------------------------------------
+function defaultDataShape(){
+  return {
+    MONTHS: [], PARTIAL: {},
+    FIN: { revenue: { "Serra":[], "Vila Velha":[], "Guarapari (leve)":[], "Guarapari (pesada)":[] },
+           meta:    { "Serra":[], "Vila Velha":[], "Guarapari (leve)":[], "Guarapari (pesada)":[] } },
+    WEEKLY_REVENUE: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
+    WEEKLY_INADIMPLENCIA: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
+    COM: { contatos:[], oportCriadas:[], oportGanhas:[], oportPerdidas:[], contratosFechados:[], cadastros:[], propostasLeve:[], propostasPesada:[] },
+    SELLERS: {},
+    CONTRACTS_ACHIEVED: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    CONTRACTS_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    PROPOSTAS_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    OPORTUNIDADES_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    CONTRACTS_META: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
+    OP: { maintenance:[], osOpened:[],
+          fleetOccupancy:{ Guarapari:[], Serra:[], "Vila Velha":[] },
+          manutReal:{ Guarapari:[], Serra:[], "Vila Velha":[] } },
+    WEEKLY_OPERATIONAL: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    WEEKLY_MANUT_MAQUINAS: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    WEEKLY_FLEET: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
+    MANUT_PESADA_REAL: { Guarapari: [] }
+  };
+}
+// preenche só as chaves de loja que faltarem em `obj`, usando `emptyVal`
+// (array [] ou objeto {}) como padrão — nunca toca nas chaves já presentes.
+function fillMissingStoreKeys(obj, storeDefaults){
+  const out = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? Object.assign({}, obj) : {};
+  Object.keys(storeDefaults).forEach(store=>{
+    if(out[store] === undefined) out[store] = storeDefaults[store];
+  });
+  return out;
+}
+// mescla nível raso: para cada chave de topo do default, usa o valor do
+// payload se existir e for do "tipo" certo (array continua array, mapa de
+// lojas continua mapa de lojas com todas as chaves garantidas); nunca
+// desce mais fundo que isso, preservando o conteúdo original de cada loja.
+function ensureShape(payload, defaults){
+  const p = payload || {};
+  const out = {};
+  out.MONTHS = Array.isArray(p.MONTHS) ? p.MONTHS : defaults.MONTHS;
+  out.PARTIAL = (p.PARTIAL && typeof p.PARTIAL==='object') ? p.PARTIAL : defaults.PARTIAL;
+
+  out.FIN = {
+    revenue: fillMissingStoreKeys(p.FIN && p.FIN.revenue, defaults.FIN.revenue),
+    meta:    fillMissingStoreKeys(p.FIN && p.FIN.meta,    defaults.FIN.meta)
+  };
+  out.WEEKLY_REVENUE = fillMissingStoreKeys(p.WEEKLY_REVENUE, defaults.WEEKLY_REVENUE);
+  out.WEEKLY_INADIMPLENCIA = fillMissingStoreKeys(p.WEEKLY_INADIMPLENCIA, defaults.WEEKLY_INADIMPLENCIA);
+
+  out.COM = Object.assign({}, defaults.COM, (p.COM && typeof p.COM==='object') ? p.COM : {});
+  out.SELLERS = (p.SELLERS && typeof p.SELLERS==='object') ? p.SELLERS : defaults.SELLERS;
+
+  out.CONTRACTS_ACHIEVED = fillMissingStoreKeys(p.CONTRACTS_ACHIEVED, defaults.CONTRACTS_ACHIEVED);
+  out.CONTRACTS_COUNT = fillMissingStoreKeys(p.CONTRACTS_COUNT, defaults.CONTRACTS_COUNT);
+  out.PROPOSTAS_COUNT = fillMissingStoreKeys(p.PROPOSTAS_COUNT, defaults.PROPOSTAS_COUNT);
+  out.OPORTUNIDADES_COUNT = fillMissingStoreKeys(p.OPORTUNIDADES_COUNT, defaults.OPORTUNIDADES_COUNT);
+  out.CONTRACTS_META = fillMissingStoreKeys(p.CONTRACTS_META, defaults.CONTRACTS_META);
+
+  const pOP = p.OP || {};
+  out.OP = {
+    maintenance: Array.isArray(pOP.maintenance) ? pOP.maintenance : defaults.OP.maintenance,
+    osOpened: Array.isArray(pOP.osOpened) ? pOP.osOpened : defaults.OP.osOpened,
+    fleetOccupancy: fillMissingStoreKeys(pOP.fleetOccupancy, defaults.OP.fleetOccupancy),
+    manutReal: fillMissingStoreKeys(pOP.manutReal, defaults.OP.manutReal)
+  };
+  out.WEEKLY_OPERATIONAL = fillMissingStoreKeys(p.WEEKLY_OPERATIONAL, defaults.WEEKLY_OPERATIONAL);
+  out.WEEKLY_MANUT_MAQUINAS = fillMissingStoreKeys(p.WEEKLY_MANUT_MAQUINAS, defaults.WEEKLY_MANUT_MAQUINAS);
+  out.WEEKLY_FLEET = fillMissingStoreKeys(p.WEEKLY_FLEET, defaults.WEEKLY_FLEET);
+  out.MANUT_PESADA_REAL = fillMissingStoreKeys(p.MANUT_PESADA_REAL, defaults.MANUT_PESADA_REAL);
+
+  return out;
+}
+
+
+async function refreshDashboard(opts){
+  const silent = opts && opts.silent;
+  if(atualizacaoEmAndamento) return; // evita chamadas sobrepostas
+  atualizacaoEmAndamento = true;
+  if(btnAtualizar){ btnAtualizar.disabled = true; btnAtualizar.textContent = '↻ Atualizando...'; }
+  if(!silent && updateStatus){ updateStatus.style.color = 'var(--ink-dim)'; updateStatus.textContent = 'Buscando dados mais recentes das planilhas...'; }
+
+  try{
+    const dataRaw = await fetchLatestData();
+    if(dataRaw.warnings && dataRaw.warnings.length){
+      console.warn('Apts Script retornou avisos (dados parciais):', dataRaw.warnings);
+    }
+
+    // ---- garante a forma completa antes de atribuir a qualquer variável ----
+    const defaults = defaultDataShape();
+    const data = ensureShape(dataRaw, defaults);
+    if(!data.MONTHS.length){
+      throw new Error('O Apps Script respondeu, mas sem nenhum mês reconhecido' + (dataRaw.warnings? (' — ' + dataRaw.warnings.join(' | ')) : '') + '.');
+    }
+
+    // ---- atualiza o estado interno (substitui os dados antigos) ----
+    MONTHS = data.MONTHS;
+    PARTIAL = data.PARTIAL;
+    FIN = data.FIN;
+    WEEKLY_REVENUE = data.WEEKLY_REVENUE;
+    WEEKLY_INADIMPLENCIA = data.WEEKLY_INADIMPLENCIA;
+    COM = data.COM;
+    SELLERS = data.SELLERS;
+    CONTRACTS_ACHIEVED = data.CONTRACTS_ACHIEVED;
+    CONTRACTS_COUNT = data.CONTRACTS_COUNT;
+    PROPOSTAS_COUNT = data.PROPOSTAS_COUNT;
+    OPORTUNIDADES_COUNT = data.OPORTUNIDADES_COUNT;
+    CONTRACTS_META = data.CONTRACTS_META;
+    // OP: mescla (mantém metaMaquinas/metaMaquinasMeses fixos, que não vêm do backend)
+    OP.maintenance = data.OP.maintenance;
+    OP.osOpened = data.OP.osOpened;
+    OP.fleetOccupancy = data.OP.fleetOccupancy;
+    OP.manutReal = data.OP.manutReal;
+    WEEKLY_OPERATIONAL = data.WEEKLY_OPERATIONAL;
+    WEEKLY_MANUT_MAQUINAS = data.WEEKLY_MANUT_MAQUINAS;
+    WEEKLY_FLEET = data.WEEKLY_FLEET;
+    MANUT_PESADA_REAL = data.MANUT_PESADA_REAL;
+
+    // ---- re-renderiza sem perder a seleção de mês/aba do gestor ----
+    populateMonthSelect();
+    renderAllData();
+
+    ultimaAtualizacaoOk = new Date();
+    document.getElementById('asof').textContent =
+      "Última atualização: " + formatarDataHora(ultimaAtualizacaoOk) + " · dados de referência: janeiro a " + (MONTHS[MONTHS.length-1] || '—').toLowerCase();
+    if(updateStatus){
+      updateStatus.style.color = 'var(--green)';
+      updateStatus.textContent = '✓ Dados atualizados — ' + formatarDataHora(ultimaAtualizacaoOk) +
+        (dataRaw.warnings && dataRaw.warnings.length ? ' (com avisos parciais — veja o console)' : '');
+    }
+  } catch(err){
+    console.error('Falha ao atualizar dados do painel Brasmetal:', err);
+    const temAlgumDado = ultimaAtualizacaoOk || (MONTHS && MONTHS.length);
+    if(updateStatus){
+      updateStatus.style.color = 'var(--red)';
+      updateStatus.textContent = '✗ Não foi possível confirmar dados ao vivo. ' +
+        (ultimaAtualizacaoOk ? ('Os dados exibidos são da última atualização bem-sucedida (' + formatarDataHora(ultimaAtualizacaoOk) + ').')
+          : (temAlgumDado ? 'Os dados exibidos são de um snapshot embutido no arquivo, não confirmados ao vivo.' : 'Ainda não foi possível carregar nenhum dado.')) +
+        ' Detalhe: ' + err.message;
+    }
+    if(!temAlgumDado){
+      document.getElementById('asof').textContent = "Não foi possível carregar os dados agora. Tentando novamente em instantes...";
+    }
+  } finally {
+    atualizacaoEmAndamento = false;
+    if(btnAtualizar){ btnAtualizar.disabled = false; btnAtualizar.textContent = '↻ Atualizar'; }
+  }
+}
+if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>refreshDashboard({silent:false}));
+
+// carga inicial: se já existir um snapshot embutido no arquivo (MONTHS
+// preenchido), mostra ele IMEDIATAMENTE — não espera a resposta do Apps
+// Script, que pode falhar ou demorar. Se a busca ao vivo der certo depois,
+// ela substitui esse snapshot normalmente (mesmo fluxo de sempre).
+if(MONTHS && MONTHS.length){
+  populateMonthSelect();
+  renderAllData();
+  document.getElementById('asof').textContent =
+    "Snapshot embutido (sem confirmação de dado ao vivo ainda) · dados de referência: janeiro a " + (MONTHS[MONTHS.length-1] || '—').toLowerCase();
+}
+
+// tenta a atualização ao vivo + polling automático a cada 30s (não bloqueia
+// a UI nem reinicia os filtros — só re-renderiza com os dados novos,
+// preservando mês/aba selecionados pelo gestor). Se falhar, o snapshot
+// acima continua na tela.
+refreshDashboard({silent:true});
+setInterval(()=>refreshDashboard({silent:true}), 30000);
+</script>
+
+</body>
+</html>
