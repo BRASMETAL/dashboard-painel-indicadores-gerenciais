@@ -117,6 +117,26 @@
     <select id="monthSelect"></select>
   </div>
 </div>
+<div class="controls" style="justify-content:flex-start;gap:10px;margin:-6px 0 14px;">
+  <label style="font-size:11px;color:var(--ink-dim);display:flex;align-items:center;gap:6px;">
+    Loja:
+    <select id="filterLoja" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+      border-radius:8px;padding:6px 10px;font-size:12.5px;">
+      <option value="">Todas as lojas</option>
+      <option value="Guarapari">Guarapari</option>
+      <option value="Serra">Serra</option>
+      <option value="Vila Velha">Vila Velha</option>
+    </select>
+  </label>
+  <label style="font-size:11px;color:var(--ink-dim);display:flex;align-items:center;gap:6px;">
+    Vendedor:
+    <select id="filterVendedor" style="background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+      border-radius:8px;padding:6px 10px;font-size:12.5px;min-width:140px;">
+      <option value="">Todos os vendedores</option>
+    </select>
+  </label>
+  <span id="filterActiveNote" style="font-size:11px;color:var(--amber);"></span>
+</div>
 <div id="updateStatus" style="font-size:12px;color:var(--ink-dim);margin:-14px 0 10px;"></div>
 
 <div class="panel" id="painelFonteDados" style="margin-bottom:18px;padding:14px 18px;display:none;">
@@ -173,7 +193,7 @@
     <div class="desc">Meta financeira semanal (mesma da planilha) comparada ao valor em inadimplência apurado na semana, por loja. Os valores de inadimplência da planilha parecem ser saldo acumulado, não só o gerado na semana — o crescimento ao longo dos meses é consistente com isso; vale confirmar a leitura antes de usar em decisão.</div>
     <div class="chart-wrap" id="chartInadimplencia" style="margin-bottom:14px;"></div>
     <table id="tableInadimplencia">
-      <thead><tr><th style="text-align:left;">Semana</th><th>Guarapari (leve)</th><th>Guarapari (pesada)</th><th>Serra</th><th>Vila Velha</th></tr></thead>
+      <thead><tr id="theadInadimplencia"><th style="text-align:left;">Semana</th></tr></thead>
       <tbody></tbody>
       <tfoot></tfoot>
     </table>
@@ -226,15 +246,15 @@
     <h2>Conversão comercial por loja</h2>
     <div class="desc">Linha leve: contratos fechados ÷ oportunidades da loja. Linha pesada (só Guarapari): contratos fechados ÷ propostas — só aparece quando há propostas suficientes para o cálculo fazer sentido (nos outros meses, mais contratos fecham do que propostas formais são feitas).</div>
     <div class="grid thirds">
-      <div>
+      <div id="wrapConvGuarapari">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Guarapari</h3>
         <div class="chart-wrap" id="chartConvGuarapari"></div>
       </div>
-      <div>
+      <div id="wrapConvSerra">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Serra</h3>
         <div class="chart-wrap" id="chartConvSerra"></div>
       </div>
-      <div>
+      <div id="wrapConvVilaVelha">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Vila Velha</h3>
         <div class="chart-wrap" id="chartConvVilaVelha"></div>
       </div>
@@ -247,7 +267,7 @@
   </div>
   <div class="panel" style="margin-bottom:16px;">
     <h2>Ranking de vendedores</h2>
-    <div class="desc">Mês selecionado no filtro acima — um ranking por linha leve, outro por linha pesada, cada um ordenado pelo seu próprio valor.</div>
+    <div class="desc">Mês selecionado no filtro acima — um ranking por linha leve, outro por linha pesada, cada um ordenado pelo seu próprio valor. Respeita o filtro de vendedor; o filtro de loja não se aplica aqui — a planilha não marca a loja de cada vendedor nesta tabela.</div>
     <div class="grid">
       <div>
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve</h3>
@@ -288,15 +308,15 @@
     <h2>Meta de redução vs. real — máquinas em manutenção (leve)</h2>
     <div class="desc">Plano de redução Mai–Dez (meta, tracejado) x apurado (real, sólido), por loja. Passe o mouse nos pontos para ver o valor exato de cada linha.</div>
     <div class="grid thirds">
-      <div>
+      <div id="wrapMetaGuarapari">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Guarapari</h3>
         <div class="chart-wrap" id="chartMetaGuarapari"></div>
       </div>
-      <div>
+      <div id="wrapMetaSerra">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Serra</h3>
         <div class="chart-wrap" id="chartMetaSerra"></div>
       </div>
-      <div>
+      <div id="wrapMetaVilaVelha">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Vila Velha</h3>
         <div class="chart-wrap" id="chartMetaVilaVelha"></div>
       </div>
@@ -331,7 +351,7 @@
     <div class="desc">Mês selecionado no filtro acima — OS abertas e manutenções corretivas, semana a semana, por loja.</div>
     <div class="chart-wrap" id="chartWeeklyOp" style="margin-bottom:14px;"></div>
     <table id="tableWeeklyOp">
-      <thead><tr><th style="text-align:left;">Semana</th><th>Guarapari · OS</th><th>Guarapari · Corretivas</th><th>Serra · OS</th><th>Serra · Corretivas</th><th>Vila Velha · OS</th><th>Vila Velha · Corretivas</th></tr></thead>
+      <thead><tr id="theadWeeklyOp"><th style="text-align:left;">Semana</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -654,6 +674,52 @@ function populateMonthSelect(){
   }
 }
 
+// =================================================================
+// FILTROS — loja e vendedor
+// =================================================================
+let selectedStore = '';   // '' = todas | 'Guarapari' | 'Serra' | 'Vila Velha'
+let selectedSeller = '';  // '' = todos | nome do vendedor
+
+const filterLoja = document.getElementById('filterLoja');
+const filterVendedor = document.getElementById('filterVendedor');
+const filterActiveNote = document.getElementById('filterActiveNote');
+
+// converte a loja selecionada (3 opções: Guarapari/Serra/Vila Velha) nas
+// chaves usadas pelas estruturas do Financeiro, onde Guarapari é dividido
+// em "Guarapari (leve)" e "Guarapari (pesada)"
+function finStoresForFilter(){
+  if(!selectedStore) return ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pesada)"];
+  if(selectedStore==='Guarapari') return ["Guarapari (leve)","Guarapari (pesada)"];
+  return [selectedStore];
+}
+// para Comercial/Operacional, as chaves já são Guarapari/Serra/Vila Velha direto
+function opStoresForFilter(){
+  return selectedStore ? [selectedStore] : ["Guarapari","Serra","Vila Velha"];
+}
+
+// popula o filtro de vendedor com todos os nomes já vistos em qualquer mês
+function populateVendedorFilter(){
+  const previous = filterVendedor.value;
+  const names = new Set();
+  Object.keys(SELLERS||{}).forEach(m=> Object.keys(SELLERS[m]||{}).forEach(n=> names.add(n)));
+  filterVendedor.innerHTML = '<option value="">Todos os vendedores</option>';
+  Array.from(names).sort().forEach(n=>{
+    const o = document.createElement('option'); o.value = n; o.textContent = n;
+    filterVendedor.appendChild(o);
+  });
+  if(previous && names.has(previous)) filterVendedor.value = previous;
+}
+
+function updateFilterNote(){
+  const parts = [];
+  if(selectedStore) parts.push('loja: ' + selectedStore);
+  if(selectedSeller) parts.push('vendedor: ' + selectedSeller);
+  filterActiveNote.textContent = parts.length ? '● Filtro ativo — ' + parts.join(' · ') : '';
+}
+
+filterLoja.addEventListener('change', ()=>{ selectedStore = filterLoja.value; updateFilterNote(); renderAllData(); });
+filterVendedor.addEventListener('change', ()=>{ selectedSeller = filterVendedor.value; updateFilterNote(); renderAllData(); });
+
 // tabs
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -668,7 +734,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 // FINANCEIRO
 // =================================================================
 function renderFinKPIs(mi){
-  const units = ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pesada)"];
+  const units = finStoresForFilter();
   const cards = units.map(u=>{
     const real = FIN.revenue[u][mi], meta = FIN.meta[u][mi];
     const pct = real/meta*100;
@@ -684,23 +750,28 @@ function renderFinKPIs(mi){
     return {label:u, value: fmtR$(real), sub: `${pct.toFixed(1)}% da meta · ${sub}`, cls};
   });
 
-  const totalReal = units.reduce((s,u)=>s+FIN.revenue[u][mi],0);
-  const totalMeta = units.reduce((s,u)=>s+FIN.meta[u][mi],0);
-  const totalPct = totalReal/totalMeta*100;
-  const totalGap = totalMeta - totalReal;
-  let totalCls, totalSub;
-  if(totalGap<=0){ totalCls='up'; totalSub = `Meta batida — +${fmtR$(-totalGap)} acima`; }
-  else if(totalPct>=85){ totalCls='warn'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
-  else { totalCls='down'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
-  cards.push({label:'Total geral', value: fmtR$(totalReal), sub: `${totalPct.toFixed(1)}% da meta · ${totalSub}`, cls: totalCls});
+  // "Total geral" some quando um filtro de loja específica está ativo —
+  // com uma loja só selecionada, o total seria igual ao próprio card dela
+  if(!selectedStore){
+    const totalReal = units.reduce((s,u)=>s+FIN.revenue[u][mi],0);
+    const totalMeta = units.reduce((s,u)=>s+FIN.meta[u][mi],0);
+    const totalPct = totalReal/totalMeta*100;
+    const totalGap = totalMeta - totalReal;
+    let totalCls, totalSub;
+    if(totalGap<=0){ totalCls='up'; totalSub = `Meta batida — +${fmtR$(-totalGap)} acima`; }
+    else if(totalPct>=85){ totalCls='warn'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
+    else { totalCls='down'; totalSub = `Faltam ${fmtR$(totalGap)} para a meta`; }
+    cards.push({label:'Total geral', value: fmtR$(totalReal), sub: `${totalPct.toFixed(1)}% da meta · ${totalSub}`, cls: totalCls});
+  }
 
+  document.getElementById('kpiFin').style.gridTemplateColumns = `repeat(${cards.length},1fr)`;
   document.getElementById('kpiFin').innerHTML = cards.map(c=>`
     <div class="kpi"><div class="label">${c.label}</div><div class="value">${c.value}</div>
     <div class="sub ${c.cls}">${c.sub}</div></div>`).join('');
 }
 
 function renderRevTrend(){
-  const units = Object.keys(FIN.revenue);
+  const units = finStoresForFilter();
   const totalReal = MONTHS.map((_,i)=>units.reduce((s,u)=>s+FIN.revenue[u][i],0));
   const totalMeta = MONTHS.map((_,i)=>units.reduce((s,u)=>s+FIN.meta[u][i],0));
   lineChart('chartRevTrend', MONTHS, [
@@ -730,6 +801,7 @@ function hexToRgba(hex, alpha){
 
 function renderContractsWeekly(mi){
   const m = MONTHS[mi];
+  const COM_STORES = opStoresForFilter();
   let labels = [];
   COM_STORES.forEach(store=>{
     (CONTRACTS_ACHIEVED[store][m].leve||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
@@ -826,6 +898,7 @@ const WEEK_STORES_FIN = ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pes
 
 function renderWeeklyRevenue(mi){
   const m = MONTHS[mi];
+  const WEEK_STORES_FIN = finStoresForFilter();
   // union of week labels across the 4 stores for this month (some stores may have fewer/more weeks filled)
   let labels = [];
   WEEK_STORES_FIN.forEach(store=>{
@@ -897,10 +970,13 @@ function renderWeeklyRevenue(mi){
 
 function renderInadimplencia(mi){
   const m = MONTHS[mi];
+  const WEEK_STORES_FIN = finStoresForFilter();
   let labels = [];
   WEEK_STORES_FIN.forEach(store=>{
     (WEEKLY_INADIMPLENCIA[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
   });
+  document.getElementById('theadInadimplencia').innerHTML =
+    '<th style="text-align:left;">Semana</th>' + WEEK_STORES_FIN.map(s=>`<th>${s}</th>`).join('');
   const series = WEEK_STORES_FIN.map(store=>{
     const byLabel = {};
     (WEEKLY_INADIMPLENCIA[store][m]||[]).forEach(w=> byLabel[w.label]=w.value);
@@ -923,7 +999,7 @@ function renderInadimplencia(mi){
 }
 
 function renderTableFin(){
-  const units = Object.keys(FIN.revenue);
+  const units = finStoresForFilter();
   document.querySelector('#tableFin tbody').innerHTML = MONTHS.map((m,i)=>{
     const real = units.reduce((s,u)=>s+FIN.revenue[u][i],0);
     const meta = units.reduce((s,u)=>s+FIN.meta[u][i],0);
@@ -938,12 +1014,28 @@ function renderTableFin(){
 // COMERCIAL
 // =================================================================
 function renderComKPIs(mi){
+  const m = MONTHS[mi];
   const conv = COM.oportGanhas[mi]/(COM.oportGanhas[mi]+COM.oportPerdidas[mi])*100;
+
+  // contratos fechados (linha leve) pode ser recalculado por loja a partir do
+  // CONTRACTS_COUNT (que é armazenado por loja); os outros 4 números do funil
+  // (contatos, oportunidades, ganhas, perdidas) só existem como total da
+  // empresa na planilha — não têm quebra por loja disponível
+  let contratosLeveFiltrado = COM.contratosFechados[mi];
+  const storesForCom = opStoresForFilter();
+  if(selectedStore){
+    contratosLeveFiltrado = storesForCom.reduce((s,store)=>{
+      const arr = (CONTRACTS_COUNT[store][m]||{}).leve || [];
+      return s + arr.reduce((s2,w)=>s2+(w.value||0),0);
+    }, 0);
+  }
+  const naoFiltravel = selectedStore ? ' <span style="opacity:.6;">(todas as lojas)</span>' : '';
+
   const cards = [
-    {label:"Contatos criados ("+MONTHS[mi]+")", value: fmtInt(COM.contatos[mi]), sub:"novos contatos no funil", cls:""},
-    {label:"Oportunidades criadas", value: fmtInt(COM.oportCriadas[mi]), sub:"entraram no funil comercial", cls:""},
-    {label:"Taxa de conversão", value: conv.toFixed(1)+"%", sub: fmtInt(COM.oportGanhas[mi])+" ganhas / "+fmtInt(COM.oportPerdidas[mi])+" perdidas", cls: conv>=50?"up":"down"},
-    {label:"Contratos fechados", value: fmtInt(COM.contratosFechados[mi]), sub:"linha leve, no mês", cls:""}
+    {label:"Contatos criados ("+MONTHS[mi]+")"+naoFiltravel, value: fmtInt(COM.contatos[mi]), sub:"novos contatos no funil", cls:""},
+    {label:"Oportunidades criadas"+naoFiltravel, value: fmtInt(COM.oportCriadas[mi]), sub:"entraram no funil comercial", cls:""},
+    {label:"Taxa de conversão"+naoFiltravel, value: conv.toFixed(1)+"%", sub: fmtInt(COM.oportGanhas[mi])+" ganhas / "+fmtInt(COM.oportPerdidas[mi])+" perdidas", cls: conv>=50?"up":"down"},
+    {label:"Contratos fechados" + (selectedStore?' — '+selectedStore:''), value: fmtInt(contratosLeveFiltrado), sub:"linha leve, no mês", cls:""}
   ];
   document.getElementById('kpiCom').innerHTML = cards.map(c=>`
     <div class="kpi"><div class="label">${c.label}</div><div class="value">${c.value}</div>
@@ -1083,11 +1175,16 @@ function renderComCharts(){
 // por loja pra não embolar. Só mostra o mês quando propostas >= contratos
 // (senão o percentual passaria de 100%, o que não faz sentido aqui).
 function renderConversaoPropostas(){
-  const stores = [
-    {key:'Guarapari', containerId:'chartConvGuarapari'},
-    {key:'Serra', containerId:'chartConvSerra'},
-    {key:'Vila Velha', containerId:'chartConvVilaVelha'}
+  const allStores = [
+    {key:'Guarapari', containerId:'chartConvGuarapari', wrapId:'wrapConvGuarapari'},
+    {key:'Serra', containerId:'chartConvSerra', wrapId:'wrapConvSerra'},
+    {key:'Vila Velha', containerId:'chartConvVilaVelha', wrapId:'wrapConvVilaVelha'}
   ];
+  allStores.forEach(({key, wrapId})=>{
+    const wrap = document.getElementById(wrapId);
+    if(wrap) wrap.style.display = (!selectedStore || selectedStore===key) ? '' : 'none';
+  });
+  const stores = allStores.filter(s=> !selectedStore || selectedStore===s.key);
   function monthSum(obj, store, m, linha){
     const arr = linha ? (obj[store][m] && obj[store][m][linha] || []) : (obj[store][m] || []);
     return arr.reduce((s,w)=>s+(w.value||0),0);
@@ -1157,12 +1254,14 @@ function hBarStackedChart(containerId, categories, series, opts){
 function renderSellerRanking(mi){
   const m = MONTHS[mi];
   const data = SELLERS[m] || {};
-  const allRows = Object.entries(data).filter(([name,st])=> st.contratosLeve>0 || st.contratosPesada>0);
+  let allRows = Object.entries(data).filter(([name,st])=> st.contratosLeve>0 || st.contratosPesada>0);
+  if(selectedSeller) allRows = allRows.filter(([name])=> name===selectedSeller);
 
   if(allRows.length===0){
-    document.getElementById('chartRankingLeve').innerHTML = `<div style="color:var(--ink-dim);font-size:12px;padding:20px 0;">Sem dados individuais de vendedor para ${m}${PARTIAL[m]?' (mês parcial)':''}.</div>`;
+    const motivo = selectedSeller ? `${selectedSeller} não teve vendas em ${m}` : `Sem dados individuais de vendedor para ${m}${PARTIAL[m]?' (mês parcial)':''}`;
+    document.getElementById('chartRankingLeve').innerHTML = `<div style="color:var(--ink-dim);font-size:12px;padding:20px 0;">${motivo}.</div>`;
     document.getElementById('chartRankingPesada').innerHTML = '';
-    document.querySelector('#tableRanking tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);">Sem dados individuais de vendedor para ${m}${PARTIAL[m]?' (mês parcial)':''}.</td></tr>`;
+    document.querySelector('#tableRanking tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);">${motivo}.</td></tr>`;
     return;
   }
 
@@ -1200,10 +1299,17 @@ function renderSellerRanking(mi){
 function renderTableCom(){
   document.querySelector('#tableCom tbody').innerHTML = MONTHS.map((m,i)=>{
     const conv = COM.oportGanhas[i]/(COM.oportGanhas[i]+COM.oportPerdidas[i])*100;
+    let contratosLeveFiltrado = COM.contratosFechados[i];
+    if(selectedStore){
+      contratosLeveFiltrado = opStoresForFilter().reduce((s,store)=>{
+        const arr = (CONTRACTS_COUNT[store][m]||{}).leve || [];
+        return s + arr.reduce((s2,w)=>s2+(w.value||0),0);
+      }, 0);
+    }
     return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
       <td>${fmtInt(COM.contatos[i])}</td><td>${fmtInt(COM.oportCriadas[i])}</td>
       <td class="pos">${fmtInt(COM.oportGanhas[i])}</td><td class="neg">${fmtInt(COM.oportPerdidas[i])}</td>
-      <td>${conv.toFixed(1)}%</td><td>${fmtInt(COM.contratosFechados[i])}</td></tr>`;
+      <td>${conv.toFixed(1)}%</td><td>${fmtInt(contratosLeveFiltrado)}</td></tr>`;
   }).join('');
 }
 
@@ -1212,7 +1318,7 @@ function renderTableCom(){
 // =================================================================
 function renderOpKPIs(mi){
   const m = MONTHS[mi];
-  const stores = ["Guarapari","Serra","Vila Velha"];
+  const stores = opStoresForFilter();
   const metaIdx = OP.metaMaquinasMeses.indexOf(m);
 
   function lastVal(arr, key){
@@ -1275,6 +1381,7 @@ function renderOpKPIs(mi){
     return {label:store, value, sub, cls};
   });
 
+  document.getElementById('kpiOp').style.gridTemplateColumns = `repeat(${cards.length},1fr)`;
   document.getElementById('kpiOp').innerHTML = cards.map(c=>`
     <div class="kpi" style="border-left:3px solid ${unitColors[c.label]};">
       <div class="label" style="color:${unitColors[c.label]};">${c.label}</div>
@@ -1283,7 +1390,7 @@ function renderOpKPIs(mi){
 }
 
 function renderFleet(mi){
-  const fleetUnits = ["Guarapari","Serra","Vila Velha"];
+  const fleetUnits = opStoresForFilter();
   barChart('chartFleet', fleetUnits,
     [{name:'% locada', color:'#6a9bff', values: fleetUnits.map(u=>OP.fleetOccupancy[u][mi])}],
     {fmt:v=>Math.round(v)+'%', max:60});
@@ -1293,11 +1400,16 @@ function renderFleet(mi){
 function renderMetaMaquinas(){
   // um gráfico por loja: meta (Mai-Dez, tracejada) e real (sólida) — separados para não embolar
   const cats = OP.metaMaquinasMeses;
-  const units = [
-    {key:"Guarapari", containerId:"chartMetaGuarapari"},
-    {key:"Serra", containerId:"chartMetaSerra"},
-    {key:"Vila Velha", containerId:"chartMetaVilaVelha"},
+  const allUnits = [
+    {key:"Guarapari", containerId:"chartMetaGuarapari", wrapId:"wrapMetaGuarapari"},
+    {key:"Serra", containerId:"chartMetaSerra", wrapId:"wrapMetaSerra"},
+    {key:"Vila Velha", containerId:"chartMetaVilaVelha", wrapId:"wrapMetaVilaVelha"},
   ];
+  allUnits.forEach(({key, wrapId})=>{
+    const wrap = document.getElementById(wrapId);
+    if(wrap) wrap.style.display = (!selectedStore || selectedStore===key) ? '' : 'none';
+  });
+  const units = allUnits.filter(u=> !selectedStore || selectedStore===u.key);
   units.forEach(({key:u, containerId})=>{
     const realVals = cats.map(m=>{ const mi = MONTHS.indexOf(m); return mi>=0? OP.manutReal[u][mi] : null; });
     const series = [
@@ -1309,7 +1421,7 @@ function renderMetaMaquinas(){
 }
 
 function renderManutReal(mi){
-  const units = ["Guarapari","Serra","Vila Velha"];
+  const units = opStoresForFilter();
   barChart('chartManutReal', units,
     [{name:'Máquinas em manutenção', color:'#6a9bff', values: units.map(u=>OP.manutReal[u][mi])}]);
   document.querySelectorAll('#chartManutReal rect').forEach((r,i)=>{ r.setAttribute('fill', unitColors[units[i]]); });
@@ -1317,7 +1429,7 @@ function renderManutReal(mi){
 
 function renderManutWeekly(mi){
   const m = MONTHS[mi];
-  const stores = WEEK_STORES_OP; // Guarapari, Serra, Vila Velha
+  const stores = opStoresForFilter();
   let labels = [];
   stores.forEach(store=>{
     (WEEKLY_MANUT_MAQUINAS[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
@@ -1363,11 +1475,14 @@ const WEEK_STORES_OP = ["Guarapari","Serra","Vila Velha"];
 
 function renderWeeklyOp(mi){
   const m = MONTHS[mi];
+  const stores = opStoresForFilter();
   let labels = [];
-  WEEK_STORES_OP.forEach(store=>{
+  stores.forEach(store=>{
     (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
   });
-  const series = WEEK_STORES_OP.map(store=>{
+  document.getElementById('theadWeeklyOp').innerHTML =
+    '<th style="text-align:left;">Semana</th>' + stores.map(s=>`<th style="border-left:1px solid var(--line);">${s} · OS</th><th>${s} · Corretivas</th>`).join('');
+  const series = stores.map(store=>{
     const byLabel = {};
     (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=> byLabel[w.label]=w.os);
     return {name:store+' · OS', color:unitColors[store], values: labels.map(l=>byLabel[l]!=null?byLabel[l]:null)};
@@ -1376,7 +1491,7 @@ function renderWeeklyOp(mi){
 
   const tbody = document.querySelector('#tableWeeklyOp tbody');
   tbody.innerHTML = labels.map((l,li)=>{
-    const cellsHtml = WEEK_STORES_OP.map(store=>{
+    const cellsHtml = stores.map(store=>{
       const w = (WEEKLY_OPERATIONAL[store][m]||[]).find(x=>x.label===l);
       return `<td style="border-left:1px solid var(--line);">${w&&w.os!=null?fmtInt(w.os):'—'}</td><td>${w&&w.corretivas!=null?fmtInt(w.corretivas):'—'}</td>`;
     }).join('');
@@ -1384,17 +1499,44 @@ function renderWeeklyOp(mi){
   }).join('');
 }
 
-function renderMaint(){ barChart('chartMaint', MONTHS, [{name:'Corretivas', color:'#f0715a', values: OP.maintenance}]); }
-function renderOS(){ barChart('chartOS', MONTHS, [{name:'OS abertas', color:'#6a9bff', values: OP.osOpened}]); }
+function renderMaint(){
+  if(!selectedStore){
+    barChart('chartMaint', MONTHS, [{name:'Corretivas', color:'#f0715a', values: OP.maintenance}]);
+    return;
+  }
+  const vals = MONTHS.map(m=> (WEEKLY_OPERATIONAL[selectedStore][m]||[]).reduce((s,w)=>s+(w.corretivas||0),0));
+  barChart('chartMaint', MONTHS, [{name:'Corretivas — '+selectedStore, color:unitColors[selectedStore], values: vals}]);
+}
+function renderOS(){
+  if(!selectedStore){
+    barChart('chartOS', MONTHS, [{name:'OS abertas', color:'#6a9bff', values: OP.osOpened}]);
+    return;
+  }
+  const vals = MONTHS.map(m=>{
+    const weeks = WEEKLY_OPERATIONAL[selectedStore][m] || [];
+    const last = [...weeks].reverse().find(w=> w.os!=null);
+    return last? last.os : null;
+  });
+  barChart('chartOS', MONTHS, [{name:'OS abertas — '+selectedStore, color:unitColors[selectedStore], values: vals}]);
+}
 
 function renderTableOp(){
-  const occUnits = ["Guarapari","Serra","Vila Velha"];
+  const occUnits = opStoresForFilter();
   document.querySelector('#tableOp tbody').innerHTML = MONTHS.map((m,i)=>{
     const occ = occUnits.map(u=>OP.fleetOccupancy[u][i]).filter(v=>v!=null);
     const occAvg = occ.length? occ.reduce((a,b)=>a+b,0)/occ.length : null;
+    const manut = selectedStore
+      ? (WEEKLY_OPERATIONAL[selectedStore][m]||[]).reduce((s,w)=>s+(w.corretivas||0),0)
+      : OP.maintenance[i];
+    let os;
+    if(selectedStore){
+      const weeks = WEEKLY_OPERATIONAL[selectedStore][m] || [];
+      const last = [...weeks].reverse().find(w=> w.os!=null);
+      os = last? last.os : null;
+    } else { os = OP.osOpened[i]; }
     return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
-      <td>${fmtInt(OP.maintenance[i])}</td>
-      <td>${OP.osOpened[i]!=null? fmtInt(OP.osOpened[i]):'—'}</td>
+      <td>${fmtInt(manut)}</td>
+      <td>${os!=null? fmtInt(os):'—'}</td>
       <td>${occAvg!=null? occAvg.toFixed(1)+'%':'—'}</td></tr>`;
   }).join('');
 }
@@ -1682,6 +1824,7 @@ async function refreshDashboard(opts){
 
     // ---- re-renderiza sem perder a seleção de mês/aba do gestor ----
     populateMonthSelect();
+    populateVendedorFilter();
     renderAllData();
 
     ultimaAtualizacaoOk = new Date();
@@ -1718,6 +1861,7 @@ if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>refreshDashboard({si
 // ela substitui esse snapshot normalmente (mesmo fluxo de sempre).
 if(MONTHS && MONTHS.length){
   populateMonthSelect();
+  populateVendedorFilter();
   renderAllData();
   document.getElementById('asof').textContent =
     "Snapshot embutido (sem confirmação de dado ao vivo ainda) · dados de referência: janeiro a " + (MONTHS[MONTHS.length-1] || '—').toLowerCase();
