@@ -1682,12 +1682,17 @@ function fetchLatestData(timeoutMs){
     if(anterior) anterior.remove();
 
     const sep = APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&';
-    script.src = APPS_SCRIPT_URL + sep + 'callback=' + cbName;
+    // authuser=0: evita que o Google insira "/u/2/" (ou outro índice) na URL
+    // quando o navegador tem várias contas Google logadas — isso pode fazer
+    // o Apps Script responder 404 mesmo com a implantação pública, porque o
+    // Google tenta rotear pela conta "ativa" daquele momento em vez de
+    // tratar como acesso anônimo/público.
+    script.src = APPS_SCRIPT_URL + sep + 'callback=' + cbName + '&authuser=0';
     script.onerror = function(){
       if(concluido) return;
       concluido = true;
       limpar();
-      reject(new Error('Falha ao carregar o script do Apps Script. Verifique se a implantação está pública ("Qualquer pessoa").'));
+      reject(new Error('Falha ao carregar o script do Apps Script. Verifique: 1) a implantação está pública ("Qualquer pessoa"); 2) se o navegador tem várias contas Google logadas, isso pode causar um 404 por roteamento de conta — veja a aba Network do DevTools: se a URL que falhou tiver "/u/1/", "/u/2/" etc. no meio, tente trocar a conta Google principal do navegador ou testar numa aba anônima.'));
     };
     document.head.appendChild(script);
   });
