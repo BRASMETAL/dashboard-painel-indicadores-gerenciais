@@ -262,24 +262,24 @@
   </div>
   <div class="panel">
     <h2>Funil — contatos e oportunidades criadas</h2>
-    <div class="desc">Evolução mensal, Jan–Ago.</div>
+    <div class="desc">Evolução mensal, Jan–Ago. Respeita os filtros de loja e vendedor (se ambos ativos, vendedor tem prioridade).</div>
     <div class="chart-wrap" id="chartFunilCriadas"></div>
   </div>
   <div class="grid">
     <div class="panel">
       <h2>Contratos fechados (linha leve)</h2>
-      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.).</div>
+      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.). Respeita os filtros de loja e vendedor (se ambos ativos, vendedor tem prioridade — a planilha não marca a loja de cada vendedor aqui).</div>
       <div class="chart-wrap" id="chartContratos"></div>
     </div>
     <div class="panel">
       <h2>Contratos fechados (linha pesada)</h2>
-      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.).</div>
+      <div class="desc">Barras: nº de contratos (eixo esq.) e valor total em R$ (eixo dir.). Linha: ticket médio (eixo esq.). Respeita os filtros de loja e vendedor (se ambos ativos, vendedor tem prioridade — a planilha não marca a loja de cada vendedor aqui).</div>
       <div class="chart-wrap" id="chartContratosPesada"></div>
     </div>
   </div>
   <div class="panel">
     <h2>Taxa de conversão</h2>
-    <div class="desc">Contratos fechados ÷ oportunidades criadas, por mês.</div>
+    <div class="desc">Contratos fechados ÷ oportunidades criadas, por mês. Respeita os filtros de loja e vendedor.</div>
     <div class="chart-wrap" id="chartConversao"></div>
   </div>
   <div class="panel">
@@ -422,6 +422,7 @@ let PARTIAL = {"Set": true};
 
 let FIN = {"revenue": {"Serra": [66584.81, 87061, 109113, 86358.5, 75331.63, 127433.4, 93590.23, 116280.9, 13935], "Vila Velha": [87725.02, 83724.99, 95450.07, 97978.46, 96363.94, 121614.58, 124534.55, 108361.31, 38849.75], "Guarapari (leve)": [74431, 79226.64, 94488, 98477, 91764, 104489.14, 93725, 76833, 37815], "Guarapari (pesada)": [582635, 533163.55, 655475, 653547, 621932, 612693.05, 686424, 802563, 188579]}, "meta": {"Serra": [75000, 70000, 70000, 80000, 80000, 85000, 85000, 90000, 90000], "Vila Velha": [85000, 80000, 85000, 85000, 90000, 90000, 90000, 90000, 95000], "Guarapari (leve)": [90000, 85000, 90000, 100000, 110000, 110000, 110000, 115000, 115000], "Guarapari (pesada)": [580000, 580000, 650000, 650000, 650000, 680000, 710000, 710000, 740000]}};
 
+let COM_BY_STORE = { contatos:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportCriadas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportGanhas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportPerdidas:{Guarapari:[],Serra:[],"Vila Velha":[]} };
 let COM = {"contatos": [1019, 830, 1007, 895, 787, 714, 899, 683, 258], "oportCriadas": [1074, 881, 1243, 1173, 1054, 947, 900, 848, 289], "oportGanhas": [200, 292, 355, 344, 276, 296, 263, 308, 80], "oportPerdidas": [473, 348, 572, 452, 353, 262, 257, 266, 101], "contratosFechados": [398, 367, 428, 388, 360, 389, 387, 417, 141], "cadastros": [143, 107, 127, 112, 96, 146, 129, 127, 55], "propostasLeve": [82, 89, 301, 175, 119, 155, 198, 199, 51], "propostasPesada": [17, 36, 62, 60, 71, 37, 69, 70, 11]};
 
 let OP = {"maintenance": [10, 16, 55, 25, 24, 33, 73, 37, 12], "osOpened": [55, 114, 131, 139, 139, 155, 294, 252, 244], "fleetOccupancy": {"Guarapari": [23.53, 20.96, 20.11, 23.29, 22.22, 20.51, 24.52, 22.42, 19.94], "Serra": [24.85, 29.4, 31.48, 25.43, 30.29, 31.81, 30.31, 23.62, 21.26], "Vila Velha": [40.49, 37.83, 39.02, 46.42, 36.53, 33.13, 32.3, 31.42, 34.98]}, "manutReal": {"Guarapari": [203, 65, 213, 211, 147, 131, 121, 102, 104], "Serra": [249, 224, 235, 326, 256, 129, 89, 59, 68], "Vila Velha": [112, 115, 121, 107, 67, 62, 66, 51, 50]}, "metaMaquinasMeses": ["Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], "metaMaquinas": {"Guarapari": [147, 118, 94, 75, 60, 48, 39, 31], "Serra": [77, 80, 57, 47, 37, 27, 17, 11], "Vila Velha": [90, 78, 66, 54, 42, 30, 18, 10]}};
@@ -1069,27 +1070,43 @@ function renderTableFin(){
 // =================================================================
 function renderComKPIs(mi){
   const m = MONTHS[mi];
-  const conv = COM.oportGanhas[mi]/(COM.oportGanhas[mi]+COM.oportPerdidas[mi])*100;
-
-  // contratos fechados (linha leve) pode ser recalculado por loja a partir do
-  // CONTRACTS_COUNT (que é armazenado por loja); os outros 4 números do funil
-  // (contatos, oportunidades, ganhas, perdidas) só existem como total da
-  // empresa na planilha — não têm quebra por loja disponível
-  let contratosLeveFiltrado = COM.contratosFechados[mi];
   const storesForCom = opStoresForFilter();
-  if(selectedStore){
+
+  // agora contatos/oportunidades/ganhas/perdidas têm quebra por loja E por
+  // vendedor (cada coluna de vendedor fica sob o cabeçalho da loja dele) —
+  // vendedor tem prioridade quando os dois filtros estão ativos ao mesmo tempo
+  let contatos, oportCriadas, oportGanhas, oportPerdidas, contratosLeveFiltrado;
+  if(selectedSeller){
+    const sv = (SELLERS[m] && SELLERS[m][selectedSeller]) || {};
+    contatos = sv.contatos || 0;
+    oportCriadas = sv.oportCriadas || 0;
+    oportGanhas = sv.ganhas || 0;
+    oportPerdidas = sv.oportPerdidas || 0;
+    contratosLeveFiltrado = sv.contratosLeve || 0;
+  } else if(selectedStore){
+    contatos = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.contatos[store][mi]||0), 0);
+    oportCriadas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportCriadas[store][mi]||0), 0);
+    oportGanhas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportGanhas[store][mi]||0), 0);
+    oportPerdidas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportPerdidas[store][mi]||0), 0);
     contratosLeveFiltrado = storesForCom.reduce((s,store)=>{
       const arr = (CONTRACTS_COUNT[store][m]||{}).leve || [];
       return s + arr.reduce((s2,w)=>s2+(w.value||0),0);
     }, 0);
+  } else {
+    contatos = COM.contatos[mi];
+    oportCriadas = COM.oportCriadas[mi];
+    oportGanhas = COM.oportGanhas[mi];
+    oportPerdidas = COM.oportPerdidas[mi];
+    contratosLeveFiltrado = COM.contratosFechados[mi];
   }
-  const naoFiltravel = selectedStore ? ' <span style="opacity:.6;">(todas as lojas)</span>' : '';
+  const conv = (oportGanhas+oportPerdidas)>0 ? oportGanhas/(oportGanhas+oportPerdidas)*100 : 0;
+  const sufixo = selectedSeller ? (' — '+selectedSeller) : (selectedStore ? (' — '+selectedStore) : '');
 
   const cards = [
-    {label:"Contatos criados ("+MONTHS[mi]+")"+naoFiltravel, value: fmtInt(COM.contatos[mi]), sub:"novos contatos no funil", cls:""},
-    {label:"Oportunidades criadas"+naoFiltravel, value: fmtInt(COM.oportCriadas[mi]), sub:"entraram no funil comercial", cls:""},
-    {label:"Taxa de conversão"+naoFiltravel, value: conv.toFixed(1)+"%", sub: fmtInt(COM.oportGanhas[mi])+" ganhas / "+fmtInt(COM.oportPerdidas[mi])+" perdidas", cls: conv>=50?"up":"down"},
-    {label:"Contratos fechados" + (selectedStore?' — '+selectedStore:''), value: fmtInt(contratosLeveFiltrado), sub:"linha leve, no mês", cls:""}
+    {label:"Contatos criados ("+MONTHS[mi]+")"+sufixo, value: fmtInt(contatos), sub:"novos contatos no funil", cls:""},
+    {label:"Oportunidades criadas"+sufixo, value: fmtInt(oportCriadas), sub:"entraram no funil comercial", cls:""},
+    {label:"Taxa de conversão"+sufixo, value: conv.toFixed(1)+"%", sub: fmtInt(oportGanhas)+" ganhas / "+fmtInt(oportPerdidas)+" perdidas", cls: conv>=50?"up":"down"},
+    {label:"Contratos fechados"+sufixo, value: fmtInt(contratosLeveFiltrado), sub:"linha leve, no mês", cls:""}
   ];
   document.getElementById('kpiCom').innerHTML = cards.map(c=>`
     <div class="kpi"><div class="label">${c.label}</div><div class="value">${c.value}</div>
@@ -1182,18 +1199,53 @@ function comboBarLineChart(containerId, categories, bars, line, opts){
 }
 
 function renderComCharts(){
+  const COM_STORES_F = opStoresForFilter();
+  let contatosSerie, oportSerie;
+  if(selectedSeller){
+    contatosSerie = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].contatos : 0);
+    oportSerie = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].oportCriadas : 0);
+  } else if(selectedStore){
+    contatosSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.contatos[store][i]||0), 0));
+    oportSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.oportCriadas[store][i]||0), 0));
+  } else {
+    contatosSerie = COM.contatos;
+    oportSerie = COM.oportCriadas;
+  }
+  const funilSufixo = selectedSeller ? (' — '+selectedSeller) : (selectedStore ? (' — '+selectedStore) : '');
   barChart('chartFunilCriadas', MONTHS, [
-    {name:'Contatos', color:'#6a9bff', values: COM.contatos},
-    {name:'Oportunidades', color:'#f0b45e', values: COM.oportCriadas}
+    {name:'Contatos'+funilSufixo, color:'#6a9bff', values: contatosSerie},
+    {name:'Oportunidades'+funilSufixo, color:'#f0b45e', values: oportSerie}
   ], {w:1000, h:280});
-  // valor total mensal (linha leve, somando as 3 lojas) + ticket médio, a partir dos dados já carregados
-  const valorLeveMensal = MONTHS.map(m=>{
-    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].leve||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
-  });
-  const ticketMedio = MONTHS.map((_,i)=> COM.contratosFechados[i]>0 ? valorLeveMensal[i]/COM.contratosFechados[i] : null);
+
+  let contratosLeveMensal, valorLeveMensal, contratosPesadaMensal, valorPesadaMensal;
+  if(selectedSeller){
+    // filtro de vendedor tem prioridade sobre o de loja nesses dois gráficos,
+    // já que a planilha não marca a loja de cada vendedor (mesma limitação
+    // do ranking) — mostramos só a trajetória mensal desse vendedor
+    contratosLeveMensal = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].contratosLeve : 0);
+    valorLeveMensal   = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].valorLeve   : 0);
+    contratosPesadaMensal = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].contratosPesada : 0);
+    valorPesadaMensal    = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].valorPesada    : 0);
+  } else {
+    valorLeveMensal = MONTHS.map(m=>{
+      return COM_STORES_F.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].leve||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+    });
+    contratosLeveMensal = selectedStore
+      ? MONTHS.map(m=> COM_STORES_F.reduce((s,store)=> s + (CONTRACTS_COUNT[store][m].leve||[]).reduce((s2,w)=>s2+(w.value||0),0), 0))
+      : COM.contratosFechados;
+    contratosPesadaMensal = MONTHS.map(m=>{
+      return COM_STORES_F.reduce((s,store)=> s + (CONTRACTS_COUNT[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+    });
+    valorPesadaMensal = MONTHS.map(m=>{
+      return COM_STORES_F.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
+    });
+  }
+
+  const filtroSufixo = selectedSeller ? (' — ' + selectedSeller) : (selectedStore ? (' — ' + selectedStore) : '');
+  const ticketMedio = MONTHS.map((_,i)=> contratosLeveMensal[i]>0 ? valorLeveMensal[i]/contratosLeveMensal[i] : null);
   comboBarLineChart('chartContratos', MONTHS,
     [
-      {name:'Contratos fechados (nº)', color:'#6a9bff', values: COM.contratosFechados, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
+      {name:'Contratos fechados (nº)'+filtroSufixo, color:'#6a9bff', values: contratosLeveMensal, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
       {name:'Valor total', color:'#f0b45e', values: valorLeveMensal, axis:'right', fmt:fmtR$, shortFmt:fmtR$k}
     ],
     {name:'Ticket médio', color:'#4fd399', values: ticketMedio, axis:'left', fmt:fmtR$, shortFmt:v=>'R$'+Math.round(v)},
@@ -1201,24 +1253,18 @@ function renderComCharts(){
   );
 
   // mesmo gráfico, agora para linha pesada
-  const contratosPesadaMensal = MONTHS.map(m=>{
-    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_COUNT[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
-  });
-  const valorPesadaMensal = MONTHS.map(m=>{
-    return COM_STORES.reduce((s,store)=> s + (CONTRACTS_ACHIEVED[store][m].pesada||[]).reduce((s2,w)=>s2+(w.value||0),0), 0);
-  });
   const ticketMedioPesada = MONTHS.map((_,i)=> contratosPesadaMensal[i]>0 ? valorPesadaMensal[i]/contratosPesadaMensal[i] : null);
   comboBarLineChart('chartContratosPesada', MONTHS,
     [
-      {name:'Contratos fechados (nº)', color:'#6a9bff', values: contratosPesadaMensal, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
+      {name:'Contratos fechados (nº)'+filtroSufixo, color:'#6a9bff', values: contratosPesadaMensal, axis:'left', fmt:fmtInt, shortFmt:fmtInt},
       {name:'Valor total', color:'#f0b45e', values: valorPesadaMensal, axis:'right', fmt:fmtR$, shortFmt:fmtR$k}
     ],
     {name:'Ticket médio', color:'#4fd399', values: ticketMedioPesada, axis:'left', fmt:fmtR$, shortFmt:v=>'R$'+Math.round(v)},
     {fmtLeft:fmtInt, fmtRight:fmtR$k}
   );
 
-  const conv = MONTHS.map((_,i)=> COM.oportCriadas[i]>0 ? COM.contratosFechados[i]/COM.oportCriadas[i]*100 : null);
-  lineChart('chartConversao', MONTHS, [{name:'Taxa de conversão', color:'#4fd399', values: conv}], {fmt:v=>v.toFixed(1)+'%', max:100, showLabels:true, w:1000, h:280});
+  const conv = MONTHS.map((_,i)=> oportSerie[i]>0 ? contratosLeveMensal[i]/oportSerie[i]*100 : null);
+  lineChart('chartConversao', MONTHS, [{name:'Taxa de conversão'+funilSufixo, color:'#4fd399', values: conv}], {fmt:v=>v.toFixed(1)+'%', max:100, showLabels:true, w:1000, h:280});
 
   renderConversaoPropostas();
 
@@ -1351,18 +1397,32 @@ function renderSellerRanking(mi){
 }
 
 function renderTableCom(){
+  const storesForCom = opStoresForFilter();
   document.querySelector('#tableCom tbody').innerHTML = MONTHS.map((m,i)=>{
-    const conv = COM.oportGanhas[i]/(COM.oportGanhas[i]+COM.oportPerdidas[i])*100;
-    let contratosLeveFiltrado = COM.contratosFechados[i];
-    if(selectedStore){
-      contratosLeveFiltrado = opStoresForFilter().reduce((s,store)=>{
+    let contatos, oportCriadas, oportGanhas, oportPerdidas, contratosLeveFiltrado;
+    if(selectedSeller){
+      const sv = (SELLERS[m] && SELLERS[m][selectedSeller]) || {};
+      contatos = sv.contatos || 0; oportCriadas = sv.oportCriadas || 0;
+      oportGanhas = sv.ganhas || 0; oportPerdidas = sv.oportPerdidas || 0;
+      contratosLeveFiltrado = sv.contratosLeve || 0;
+    } else if(selectedStore){
+      contatos = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.contatos[store][i]||0), 0);
+      oportCriadas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportCriadas[store][i]||0), 0);
+      oportGanhas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportGanhas[store][i]||0), 0);
+      oportPerdidas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportPerdidas[store][i]||0), 0);
+      contratosLeveFiltrado = storesForCom.reduce((s,store)=>{
         const arr = (CONTRACTS_COUNT[store][m]||{}).leve || [];
         return s + arr.reduce((s2,w)=>s2+(w.value||0),0);
       }, 0);
+    } else {
+      contatos = COM.contatos[i]; oportCriadas = COM.oportCriadas[i];
+      oportGanhas = COM.oportGanhas[i]; oportPerdidas = COM.oportPerdidas[i];
+      contratosLeveFiltrado = COM.contratosFechados[i];
     }
+    const conv = (oportGanhas+oportPerdidas)>0 ? oportGanhas/(oportGanhas+oportPerdidas)*100 : 0;
     return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
-      <td>${fmtInt(COM.contatos[i])}</td><td>${fmtInt(COM.oportCriadas[i])}</td>
-      <td class="pos">${fmtInt(COM.oportGanhas[i])}</td><td class="neg">${fmtInt(COM.oportPerdidas[i])}</td>
+      <td>${fmtInt(contatos)}</td><td>${fmtInt(oportCriadas)}</td>
+      <td class="pos">${fmtInt(oportGanhas)}</td><td class="neg">${fmtInt(oportPerdidas)}</td>
       <td>${conv.toFixed(1)}%</td><td>${fmtInt(contratosLeveFiltrado)}</td></tr>`;
   }).join('');
 }
@@ -1772,6 +1832,12 @@ function defaultDataShape(){
     WEEKLY_REVENUE: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
     WEEKLY_INADIMPLENCIA: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
     COM: { contatos:[], oportCriadas:[], oportGanhas:[], oportPerdidas:[], contratosFechados:[], cadastros:[], propostasLeve:[], propostasPesada:[] },
+    COM_BY_STORE: {
+      contatos: { Guarapari:[], Serra:[], "Vila Velha":[] },
+      oportCriadas: { Guarapari:[], Serra:[], "Vila Velha":[] },
+      oportGanhas: { Guarapari:[], Serra:[], "Vila Velha":[] },
+      oportPerdidas: { Guarapari:[], Serra:[], "Vila Velha":[] }
+    },
     SELLERS: {},
     CONTRACTS_ACHIEVED: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
     CONTRACTS_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
@@ -1814,6 +1880,13 @@ function ensureShape(payload, defaults){
   out.WEEKLY_INADIMPLENCIA = fillMissingStoreKeys(p.WEEKLY_INADIMPLENCIA, defaults.WEEKLY_INADIMPLENCIA);
 
   out.COM = Object.assign({}, defaults.COM, (p.COM && typeof p.COM==='object') ? p.COM : {});
+  const pCBS = p.COM_BY_STORE || {};
+  out.COM_BY_STORE = {
+    contatos: fillMissingStoreKeys(pCBS.contatos, defaults.COM_BY_STORE.contatos),
+    oportCriadas: fillMissingStoreKeys(pCBS.oportCriadas, defaults.COM_BY_STORE.oportCriadas),
+    oportGanhas: fillMissingStoreKeys(pCBS.oportGanhas, defaults.COM_BY_STORE.oportGanhas),
+    oportPerdidas: fillMissingStoreKeys(pCBS.oportPerdidas, defaults.COM_BY_STORE.oportPerdidas)
+  };
   out.SELLERS = (p.SELLERS && typeof p.SELLERS==='object') ? p.SELLERS : defaults.SELLERS;
 
   out.CONTRACTS_ACHIEVED = fillMissingStoreKeys(p.CONTRACTS_ACHIEVED, defaults.CONTRACTS_ACHIEVED);
@@ -1865,6 +1938,7 @@ async function refreshDashboard(opts){
     WEEKLY_REVENUE = data.WEEKLY_REVENUE;
     WEEKLY_INADIMPLENCIA = data.WEEKLY_INADIMPLENCIA;
     COM = data.COM;
+    COM_BY_STORE = data.COM_BY_STORE;
     SELLERS = data.SELLERS;
     CONTRACTS_ACHIEVED = data.CONTRACTS_ACHIEVED;
     CONTRACTS_COUNT = data.CONTRACTS_COUNT;
