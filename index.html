@@ -261,8 +261,8 @@
     </table>
   </div>
   <div class="panel">
-    <h2>Funil — contatos e oportunidades criadas</h2>
-    <div class="desc">Evolução mensal, Jan–Ago. Respeita os filtros de loja e vendedor (se ambos ativos, vendedor tem prioridade).</div>
+    <h2>Topo de funil — cadastros, oportunidades e ligações recebidas</h2>
+    <div class="desc">Evolução mensal. Cadastros e oportunidades respeitam loja e vendedor (vendedor tem prioridade); ligações é um dado por loja na planilha, então só respeita o filtro de loja.</div>
     <div class="chart-wrap" id="chartFunilCriadas"></div>
   </div>
   <div class="grid">
@@ -422,8 +422,8 @@ let PARTIAL = {"Set": true};
 
 let FIN = {"revenue": {"Serra": [66584.81, 87061, 109113, 86358.5, 75331.63, 127433.4, 93590.23, 116280.9, 13935], "Vila Velha": [87725.02, 83724.99, 95450.07, 97978.46, 96363.94, 121614.58, 124534.55, 108361.31, 38849.75], "Guarapari (leve)": [74431, 79226.64, 94488, 98477, 91764, 104489.14, 93725, 76833, 37815], "Guarapari (pesada)": [582635, 533163.55, 655475, 653547, 621932, 612693.05, 686424, 802563, 188579]}, "meta": {"Serra": [75000, 70000, 70000, 80000, 80000, 85000, 85000, 90000, 90000], "Vila Velha": [85000, 80000, 85000, 85000, 90000, 90000, 90000, 90000, 95000], "Guarapari (leve)": [90000, 85000, 90000, 100000, 110000, 110000, 110000, 115000, 115000], "Guarapari (pesada)": [580000, 580000, 650000, 650000, 650000, 680000, 710000, 710000, 740000]}};
 
-let COM_BY_STORE = { contatos:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportCriadas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportGanhas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportPerdidas:{Guarapari:[],Serra:[],"Vila Velha":[]} };
-let COM = {"contatos": [1019, 830, 1007, 895, 787, 714, 899, 683, 258], "oportCriadas": [1074, 881, 1243, 1173, 1054, 947, 900, 848, 289], "oportGanhas": [200, 292, 355, 344, 276, 296, 263, 308, 80], "oportPerdidas": [473, 348, 572, 452, 353, 262, 257, 266, 101], "contratosFechados": [398, 367, 428, 388, 360, 389, 387, 417, 141], "cadastros": [143, 107, 127, 112, 96, 146, 129, 127, 55], "propostasLeve": [82, 89, 301, 175, 119, 155, 198, 199, 51], "propostasPesada": [17, 36, 62, 60, 71, 37, 69, 70, 11]};
+let COM_BY_STORE = { contatos:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportCriadas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportGanhas:{Guarapari:[],Serra:[],"Vila Velha":[]}, oportPerdidas:{Guarapari:[],Serra:[],"Vila Velha":[]}, ligacoes:{Guarapari:[],Serra:[],"Vila Velha":[]}, cadastros:{Guarapari:[],Serra:[],"Vila Velha":[]} };
+let COM = {"contatos": [1019, 830, 1007, 895, 787, 714, 899, 683, 258], "oportCriadas": [1074, 881, 1243, 1173, 1054, 947, 900, 848, 289], "oportGanhas": [200, 292, 355, 344, 276, 296, 263, 308, 80], "oportPerdidas": [473, 348, 572, 452, 353, 262, 257, 266, 101], "contratosFechados": [398, 367, 428, 388, 360, 389, 387, 417, 141], "cadastros": [143, 107, 127, 112, 96, 146, 129, 127, 55], "propostasLeve": [82, 89, 301, 175, 119, 155, 198, 199, 51], "propostasPesada": [17, 36, 62, 60, 71, 37, 69, 70, 11], "ligacoes": [null, null, null, null, null, null, null, null, null]};
 
 let OP = {"maintenance": [10, 16, 55, 25, 24, 33, 73, 37, 12], "osOpened": [55, 114, 131, 139, 139, 155, 294, 252, 244], "fleetOccupancy": {"Guarapari": [23.53, 20.96, 20.11, 23.29, 22.22, 20.51, 24.52, 22.42, 19.94], "Serra": [24.85, 29.4, 31.48, 25.43, 30.29, 31.81, 30.31, 23.62, 21.26], "Vila Velha": [40.49, 37.83, 39.02, 46.42, 36.53, 33.13, 32.3, 31.42, 34.98]}, "manutReal": {"Guarapari": [203, 65, 213, 211, 147, 131, 121, 102, 104], "Serra": [249, 224, 235, 326, 256, 129, 89, 59, 68], "Vila Velha": [112, 115, 121, 107, 67, 62, 66, 51, 50]}, "metaMaquinasMeses": ["Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"], "metaMaquinas": {"Guarapari": [147, 118, 94, 75, 60, 48, 39, 31], "Serra": [77, 80, 57, 47, 37, 27, 17, 11], "Vila Velha": [90, 78, 66, 54, 42, 30, 18, 10]}};
 
@@ -1200,22 +1200,32 @@ function comboBarLineChart(containerId, categories, bars, line, opts){
 
 function renderComCharts(){
   const COM_STORES_F = opStoresForFilter();
-  let contatosSerie, oportSerie;
+  let oportSerie, ligacoesSerie, cadastrosSerie;
   if(selectedSeller){
-    contatosSerie = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].contatos : 0);
     oportSerie = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? SELLERS[m][selectedSeller].oportCriadas : 0);
+    cadastrosSerie = MONTHS.map(m => (SELLERS[m] && SELLERS[m][selectedSeller]) ? (SELLERS[m][selectedSeller].cadastros||0) : 0);
   } else if(selectedStore){
-    contatosSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.contatos[store][i]||0), 0));
     oportSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.oportCriadas[store][i]||0), 0));
+    cadastrosSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.cadastros[store][i]||0), 0));
   } else {
-    contatosSerie = COM.contatos;
     oportSerie = COM.oportCriadas;
+    cadastrosSerie = COM.cadastros;
+  }
+  // Ligações recebidas é um dado por LOJA na planilha (mesclado entre os
+  // vendedores daquela loja/semana) — não existe quebra por vendedor. Por
+  // isso o filtro de vendedor não afeta essa série; o filtro de loja sim.
+  if(selectedStore){
+    ligacoesSerie = MONTHS.map((_,i)=> COM_STORES_F.reduce((s,store)=> s+(COM_BY_STORE.ligacoes[store][i]||0), 0));
+  } else {
+    ligacoesSerie = COM.ligacoes;
   }
   const funilSufixo = selectedSeller ? (' — '+selectedSeller) : (selectedStore ? (' — '+selectedStore) : '');
-  barChart('chartFunilCriadas', MONTHS, [
-    {name:'Contatos'+funilSufixo, color:'#6a9bff', values: contatosSerie},
-    {name:'Oportunidades'+funilSufixo, color:'#f0b45e', values: oportSerie}
-  ], {w:1000, h:280});
+  const ligacoesSufixo = selectedStore ? (' — '+selectedStore) : '';
+  lineChart('chartFunilCriadas', MONTHS, [
+    {name:'Cadastros'+funilSufixo, color:'#4fd399', values: cadastrosSerie},
+    {name:'Oportunidades recebidas'+funilSufixo, color:'#f0b45e', values: oportSerie},
+    {name:'Ligações recebidas'+ligacoesSufixo, color:'#6a9bff', values: ligacoesSerie}
+  ], {w:1000, h:280, fmt:fmtInt, showLabels:true});
 
   let contratosLeveMensal, valorLeveMensal, contratosPesadaMensal, valorPesadaMensal;
   if(selectedSeller){
@@ -1831,12 +1841,14 @@ function defaultDataShape(){
            meta:    { "Serra":[], "Vila Velha":[], "Guarapari (leve)":[], "Guarapari (pesada)":[] } },
     WEEKLY_REVENUE: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
     WEEKLY_INADIMPLENCIA: { "Serra":{}, "Vila Velha":{}, "Guarapari (leve)":{}, "Guarapari (pesada)":{} },
-    COM: { contatos:[], oportCriadas:[], oportGanhas:[], oportPerdidas:[], contratosFechados:[], cadastros:[], propostasLeve:[], propostasPesada:[] },
+    COM: { contatos:[], oportCriadas:[], oportGanhas:[], oportPerdidas:[], contratosFechados:[], cadastros:[], propostasLeve:[], propostasPesada:[], ligacoes:[] },
     COM_BY_STORE: {
       contatos: { Guarapari:[], Serra:[], "Vila Velha":[] },
       oportCriadas: { Guarapari:[], Serra:[], "Vila Velha":[] },
       oportGanhas: { Guarapari:[], Serra:[], "Vila Velha":[] },
-      oportPerdidas: { Guarapari:[], Serra:[], "Vila Velha":[] }
+      oportPerdidas: { Guarapari:[], Serra:[], "Vila Velha":[] },
+      ligacoes: { Guarapari:[], Serra:[], "Vila Velha":[] },
+      cadastros: { Guarapari:[], Serra:[], "Vila Velha":[] }
     },
     SELLERS: {},
     CONTRACTS_ACHIEVED: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
@@ -1885,7 +1897,9 @@ function ensureShape(payload, defaults){
     contatos: fillMissingStoreKeys(pCBS.contatos, defaults.COM_BY_STORE.contatos),
     oportCriadas: fillMissingStoreKeys(pCBS.oportCriadas, defaults.COM_BY_STORE.oportCriadas),
     oportGanhas: fillMissingStoreKeys(pCBS.oportGanhas, defaults.COM_BY_STORE.oportGanhas),
-    oportPerdidas: fillMissingStoreKeys(pCBS.oportPerdidas, defaults.COM_BY_STORE.oportPerdidas)
+    oportPerdidas: fillMissingStoreKeys(pCBS.oportPerdidas, defaults.COM_BY_STORE.oportPerdidas),
+    ligacoes: fillMissingStoreKeys(pCBS.ligacoes, defaults.COM_BY_STORE.ligacoes),
+    cadastros: fillMissingStoreKeys(pCBS.cadastros, defaults.COM_BY_STORE.cadastros)
   };
   out.SELLERS = (p.SELLERS && typeof p.SELLERS==='object') ? p.SELLERS : defaults.SELLERS;
 
