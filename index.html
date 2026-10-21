@@ -363,6 +363,20 @@
     </div>
   </div>
   <div class="panel">
+    <h2>Visita técnica corretiva — linha leve e pesada</h2>
+    <div class="desc">Semana a semana, mês selecionado no filtro acima. Meta leve: 6/mês (2 por loja, total empresa). Meta pesada (matriz Guarapari): 8/mês.</div>
+    <div class="grid halves">
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve — total empresa</h3>
+        <div class="chart-wrap" id="chartCorretivasLeve"></div>
+      </div>
+      <div>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha pesada — matriz Guarapari</h3>
+        <div class="chart-wrap" id="chartCorretivasPesada"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
     <h2>Ocupação da frota (leve)</h2>
     <div class="desc">Ocupação bruta (alugadas ÷ total da frota leve) por unidade, última semana do mês. Veja o cálculo completo — bruta e líquida — nos quadrantes acima.</div>
     <div class="chart-wrap" id="chartFleet"></div>
@@ -1544,6 +1558,51 @@ function renderMetaMaquinas(){
   });
 }
 
+// metas fixas de visitas corretivas (não vêm da planilha, definidas pela
+// diretoria): leve = 2 visitas/loja/mês; pesada (matriz Guarapari) = 8/mês
+const META_CORRETIVAS_LEVE = 2;
+const META_CORRETIVAS_PESADA = 8;
+
+// meta mensal da linha leve = soma das metas das 3 lojas (2 cada)
+const META_CORRETIVAS_LEVE_TOTAL = META_CORRETIVAS_LEVE * 3;
+
+function renderCorretivas(mi){
+  const m = MONTHS[mi];
+  const allStores = ['Guarapari','Serra','Vila Velha'];
+
+  // eixo X = semanas do mês selecionado (rótulos coletados de todas as
+  // lojas, já que cada loja pode ter semanas levemente diferentes)
+  let labels = [];
+  allStores.forEach(store=>{
+    (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
+  });
+
+  // linha leve = TOTAL da empresa (soma das 3 lojas) por semana, vs. meta
+  // mensal de 6 (2 por loja) — não é mais quebrado por loja
+  const leveReal = labels.map(l=>{
+    let sum = null;
+    allStores.forEach(store=>{
+      const w = (WEEKLY_OPERATIONAL[store][m]||[]).find(x=>x.label===l);
+      if(w && w.visitaLeve!=null){ sum = (sum||0) + w.visitaLeve; }
+    });
+    return sum;
+  });
+  lineChart('chartCorretivasLeve', labels, [
+    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_LEVE_TOTAL)},
+    {name:'Real — total empresa', color:'#6a9bff', values: leveReal}
+  ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true});
+
+  // "visita técnica corretiva — linha pesada" só existe em Guarapari (matriz)
+  const pesadaReal = labels.map(l=>{
+    const w = (WEEKLY_OPERATIONAL.Guarapari[m]||[]).find(x=>x.label===l);
+    return w ? w.visitaPesada : null;
+  });
+  lineChart('chartCorretivasPesada', labels, [
+    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_PESADA)},
+    {name:'Guarapari (pesada)', color: unitColors.Guarapari, values: pesadaReal}
+  ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true});
+}
+
 function renderManutReal(mi){
   const units = opStoresForFilter();
   barChart('chartManutReal', units,
@@ -1673,7 +1732,7 @@ function renderAll(){
   const mi = parseInt(sel.value);
   renderFinKPIs(mi); renderWeeklyRevenue(mi); renderInadimplencia(mi);
   renderComKPIs(mi); renderSellerRanking(mi); renderContractsWeekly(mi);
-  renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi);
+  renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi); renderCorretivas(mi);
 }
 sel.addEventListener('change', renderAll);
 
