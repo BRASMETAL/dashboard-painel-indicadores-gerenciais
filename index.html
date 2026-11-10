@@ -81,6 +81,7 @@
   tr:last-child td{border-bottom:none;}
   tbody tr:hover td{background:rgba(255,255,255,.02);}
   td.pos{color:var(--green);} td.neg{color:var(--red);}
+  th.tl,td.tl{text-align:left;font-family:inherit;}
   td.warn-cell{color:var(--amber);}
   .saldo-row td{font-weight:700;}
 
@@ -265,6 +266,28 @@
     <div class="desc">Evolução mensal. Cadastros e oportunidades respeitam loja e vendedor (vendedor tem prioridade); ligações é um dado por loja na planilha, então só respeita o filtro de loja.</div>
     <div class="chart-wrap" id="chartFunilCriadas"></div>
   </div>
+  <div class="panel" id="panelHomio">
+    <h2>Funil CRM (Homio) — contatos e oportunidades por vendedor <span class="badge forecast">Homio · ao vivo</span></h2>
+    <div class="desc">Lido direto do CRM, pelo responsável de cada contato/oportunidade (cada vendedor pertence a uma loja). <b>Criadas</b>: criadas no período. <b>Abertas / ganhas / perdidas</b>: situação atual das oportunidades criadas no período. <b>A trabalhar</b>: oportunidades abertas paradas na 1ª etapa do funil ("A Trabalhar"), sempre o retrato de hoje — não muda com o mês, a semana nem o período escolhido. Recorrência = CNPJ + CPF. Respeita os filtros de loja e vendedor.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+      <label for="homioSemana" style="font-size:11px;color:var(--ink-dim);">Período</label>
+      <select id="homioSemana"><option value="mes">Mês inteiro</option></select>
+      <span id="homioStatus" style="font-size:11.5px;color:var(--ink-dim);"></span>
+    </div>
+    <div id="homioAviso" style="font-size:11.5px;color:var(--amber);margin-bottom:8px;"></div>
+    <table id="tableHomio">
+      <thead><tr>
+        <th>Loja / vendedor</th><th>Contatos criados</th><th>Oport. criadas</th><th>Abertas</th><th>Ganhas</th><th>Perdidas</th>
+        <th>A trabalhar<br>Inbound (hoje)</th><th>A trabalhar<br>Recorrência (hoje)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <h3 id="homioParadasTitulo" style="font-size:12px;color:var(--ink-dim);margin:18px 0 8px;">Oportunidades paradas em "A Trabalhar"</h3>
+    <table id="tableHomioParadas">
+      <thead><tr><th>Vendedor</th><th class="tl">Loja</th><th class="tl">Oportunidade</th><th class="tl">Funil</th><th>Parada há (dias)</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
   <div class="grid">
     <div class="panel">
       <h2>Contratos fechados (linha leve)</h2>
@@ -299,11 +322,6 @@
         <div class="chart-wrap" id="chartConvVilaVelha"></div>
       </div>
     </div>
-  </div>
-  <div class="panel">
-    <h2>Cadastros de clientes</h2>
-    <div class="desc">Novos cadastros realizados, por mês.</div>
-    <div class="chart-wrap" id="chartCadastros"></div>
   </div>
   <div class="panel" style="margin-bottom:16px;">
     <h2>Ranking de vendedores</h2>
@@ -365,12 +383,12 @@
   <div class="panel">
     <h2>Visita técnica corretiva — linha leve e pesada</h2>
     <div class="desc">Semana a semana, mês selecionado no filtro acima. Meta leve: 6/mês (2 por loja, total empresa). Meta pesada (matriz Guarapari): 8/mês.</div>
-    <div class="grid halves">
+    <div class="grid halves" id="gridCorretivas">
       <div>
-        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve — total empresa</h3>
+        <h3 id="tituloCorretivasLeve" style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve — total empresa</h3>
         <div class="chart-wrap" id="chartCorretivasLeve"></div>
       </div>
-      <div>
+      <div id="wrapCorretivasPesada">
         <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha pesada — matriz Guarapari</h3>
         <div class="chart-wrap" id="chartCorretivasPesada"></div>
       </div>
@@ -1292,7 +1310,6 @@ function renderComCharts(){
 
   renderConversaoPropostas();
 
-  lineChart('chartCadastros', MONTHS, [{name:'Cadastros', color:'#6a9bff', values: COM.cadastros}], {fmt:fmtInt, showLabels:true, w:1000, h:280});
 }
 
 // conversão de propostas → contratos, por loja (leve e pesada), um mini-gráfico
@@ -1566,41 +1583,56 @@ const META_CORRETIVAS_PESADA = 8;
 // meta mensal da linha leve = soma das metas das 3 lojas (2 cada)
 const META_CORRETIVAS_LEVE_TOTAL = META_CORRETIVAS_LEVE * 3;
 
+// escala vertical em números inteiros (múltiplo de 4 → 5 marcações inteiras)
+function escalaInteira(meta, vals){
+  const mx = Math.max(meta, ...vals.filter(v=>v!=null));
+  return Math.max(4, Math.ceil(mx*1.15/4)*4);
+}
 function renderCorretivas(mi){
   const m = MONTHS[mi];
-  const allStores = ['Guarapari','Serra','Vila Velha'];
+  // respeita o filtro de loja da barra lateral
+  const stores = opStoresForFilter();
+  const metaLeve = META_CORRETIVAS_LEVE * stores.length;
+  const nomeLeve = selectedStore ? selectedStore : 'total empresa';
 
-  // eixo X = semanas do mês selecionado (rótulos coletados de todas as
-  // lojas, já que cada loja pode ter semanas levemente diferentes)
+  // linha pesada só existe na matriz (Guarapari): com filtro em Serra ou
+  // Vila Velha, o painel pesado é ocultado e o leve ocupa a largura toda
+  const mostraPesada = !selectedStore || selectedStore==='Guarapari';
+  const wrapPesada = document.getElementById('wrapCorretivasPesada');
+  const gridC = document.getElementById('gridCorretivas');
+  if(wrapPesada) wrapPesada.style.display = mostraPesada ? '' : 'none';
+  if(gridC) gridC.style.gridTemplateColumns = mostraPesada ? '' : '1fr';
+  const tl = document.getElementById('tituloCorretivasLeve');
+  if(tl) tl.textContent = 'Linha leve — ' + nomeLeve + ' (meta ' + metaLeve + '/mês)';
+
   let labels = [];
-  allStores.forEach(store=>{
+  stores.forEach(store=>{
     (WEEKLY_OPERATIONAL[store][m]||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
   });
 
-  // linha leve = TOTAL da empresa (soma das 3 lojas) por semana, vs. meta
-  // mensal de 6 (2 por loja) — não é mais quebrado por loja
   const leveReal = labels.map(l=>{
     let sum = null;
-    allStores.forEach(store=>{
+    stores.forEach(store=>{
       const w = (WEEKLY_OPERATIONAL[store][m]||[]).find(x=>x.label===l);
       if(w && w.visitaLeve!=null){ sum = (sum||0) + w.visitaLeve; }
     });
     return sum;
   });
   lineChart('chartCorretivasLeve', labels, [
-    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_LEVE_TOTAL)},
-    {name:'Real — total empresa', color:'#6a9bff', values: leveReal}
-  ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true});
+    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>metaLeve)},
+    {name:'Real — ' + nomeLeve, color: selectedStore ? unitColors[selectedStore] : '#6a9bff', values: leveReal}
+  ], {w: mostraPesada ? 490 : 1000, h:260, fmt:v=>Math.round(v), showLabels:true, max: escalaInteira(metaLeve, leveReal)});
 
-  // "visita técnica corretiva — linha pesada" só existe em Guarapari (matriz)
-  const pesadaReal = labels.map(l=>{
-    const w = (WEEKLY_OPERATIONAL.Guarapari[m]||[]).find(x=>x.label===l);
-    return w ? w.visitaPesada : null;
-  });
-  lineChart('chartCorretivasPesada', labels, [
-    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_PESADA)},
-    {name:'Guarapari (pesada)', color: unitColors.Guarapari, values: pesadaReal}
-  ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true});
+  if(mostraPesada){
+    const pesadaReal = labels.map(l=>{
+      const w = (WEEKLY_OPERATIONAL.Guarapari[m]||[]).find(x=>x.label===l);
+      return w ? w.visitaPesada : null;
+    });
+    lineChart('chartCorretivasPesada', labels, [
+      {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_PESADA)},
+      {name:'Guarapari (pesada)', color: unitColors.Guarapari, values: pesadaReal}
+    ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true, max: escalaInteira(META_CORRETIVAS_PESADA, pesadaReal)});
+  }
 }
 
 function renderManutReal(mi){
@@ -1726,6 +1758,196 @@ function renderTableOp(){
 }
 
 // =================================================================
+// FUNIL CRM (HOMIO) — contatos e oportunidades por vendedor/loja
+// Os dados vêm do Apps Script (action=homio), que consulta o Homio com o
+// token guardado só no servidor. Falha aqui NUNCA apaga o que já está na tela:
+// mostra o aviso abaixo e mantém a última atualização bem-sucedida.
+// =================================================================
+let HOMIO = null;          // último payload bem-sucedido
+let HOMIO_ERRO = null;     // mensagem da última falha (null = última tentativa deu certo)
+let homioEmAndamento = false;
+const HOMIO_MSG_FALHA = 'Não foi possível atualizar os dados. Os dados exibidos são da última atualização bem-sucedida.';
+const HOMIO_LOJAS = ['Guarapari','Serra','Vila Velha'];
+const HOMIO_SEM_RESP = 'Sem responsável';
+const HOMIO_OUTROS = 'Outros';
+
+function fetchHomioData(force, timeoutMs){
+  timeoutMs = timeoutMs || 120000; // a 1ª consulta (sem cache) percorre contatos e oportunidades do CRM
+  return new Promise((resolve, reject)=>{
+    if(!APPS_SCRIPT_URL){ reject(new Error('Nenhuma URL de Apps Script configurada.')); return; }
+    const cbName = 'brasmetalHomioJSONP_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+    let concluido = false;
+    const script = document.createElement('script');
+    script.id = 'jsonp-script-homio';
+    function limpar(){
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){ window[cbName] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    const timer = setTimeout(()=>{
+      if(concluido) return; concluido = true; limpar();
+      reject(new Error('Tempo limite excedido ao consultar o Homio (' + Math.round(timeoutMs/1000) + 's).'));
+    }, timeoutMs);
+    window[cbName] = function(payload){
+      if(concluido) return; concluido = true; limpar();
+      if(!payload){ reject(new Error('O Apps Script respondeu vazio (Homio).')); return; }
+      if(payload.status === 'error'){ reject(new Error(payload.message || 'Erro desconhecido ao consultar o Homio.')); return; }
+      resolve(payload);
+    };
+    const anterior = document.getElementById('jsonp-script-homio');
+    if(anterior) anterior.remove();
+    const sep = APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&';
+    script.src = APPS_SCRIPT_URL + sep + 'action=homio' + (force ? '&force=1' : '') + '&callback=' + cbName;
+    script.onerror = function(){
+      if(concluido) return; concluido = true; limpar();
+      reject(new Error('Falha ao carregar a resposta do Apps Script (Homio).'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function refreshHomio(opts){
+  if(homioEmAndamento) return;
+  homioEmAndamento = true;
+  try{
+    const p = await fetchHomioData(!!(opts && opts.force));
+    if(!p || !p.months || !p.aTrabalhar || !Array.isArray(p.vendedores)) throw new Error('Resposta do Homio incompleta.');
+    if(p.warnings && p.warnings.length) console.warn('Homio retornou avisos:', p.warnings);
+    HOMIO = p; HOMIO_ERRO = null;
+  } catch(err){
+    console.error('Falha ao atualizar os dados do Homio:', err);
+    HOMIO_ERRO = (err && err.message) || String(err);
+  } finally {
+    homioEmAndamento = false;
+    renderHomio();
+  }
+}
+
+function renderHomio(){
+  const tbody = document.querySelector('#tableHomio tbody');
+  const tbodyP = document.querySelector('#tableHomioParadas tbody');
+  if(!tbody || !tbodyP) return;
+  const status = document.getElementById('homioStatus');
+  const aviso = document.getElementById('homioAviso');
+  const selSem = document.getElementById('homioSemana');
+
+  // ---- mensagem de estado ----
+  if(HOMIO_ERRO){
+    status.style.color = 'var(--red)';
+    status.textContent = HOMIO_MSG_FALHA + (HOMIO ? ' Última atualização bem-sucedida: ' + formatarDataHora(new Date(HOMIO.generatedAt)) + '.' : ' Ainda não há dados do Homio carregados.');
+  } else if(HOMIO){
+    status.style.color = 'var(--ink-dim)';
+    status.textContent = 'Homio atualizado em ' + formatarDataHora(new Date(HOMIO.generatedAt)) + (HOMIO.cache ? ' (consulta guardada por até 10 min)' : '');
+  } else {
+    status.style.color = 'var(--ink-dim)';
+    status.textContent = 'Carregando dados do Homio…';
+  }
+  if(!HOMIO){
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);">' + (HOMIO_ERRO ? 'Sem dados do Homio.' : 'Carregando…') + '</td></tr>';
+    tbodyP.innerHTML = '';
+    aviso.textContent = '';
+    return;
+  }
+
+  const mi = parseInt(sel.value);
+  const mesCod = MONTHS[mi];
+  const mes = HOMIO.months[mesCod];
+
+  // ---- seletor de período (mês inteiro / cada semana já iniciada) ----
+  const anterior = selSem.value;
+  const ops = ['<option value="mes">Mês inteiro (semanas iniciadas)</option>'];
+  if(mes) mes.weeks.forEach((w,i)=>{ if(w.iniciada) ops.push('<option value="' + i + '">' + w.label + (w.atual ? ' (em andamento)' : '') + '</option>'); });
+  selSem.innerHTML = ops.join('');
+  if(Array.from(selSem.options).some(o=>o.value === anterior)) selSem.value = anterior;
+  aviso.textContent = mes ? '' : ('Sem dados do Homio para ' + (mesCod || 'este mês') + ': o painel carrega o mês atual e o anterior' +
+    (HOMIO.mesAtual ? ' (' + HOMIO.mesAtual + ' e o mês anterior)' : '') + '. As colunas "A trabalhar" continuam sendo o retrato de hoje.');
+
+  function metricas(nome){
+    if(!mes) return null;
+    const v = selSem.value;
+    const s = {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0};
+    mes.weeks.forEach((w,i)=>{
+      if(!w.iniciada) return;
+      if(v !== 'mes' && String(i) !== v) return;
+      const m = w.bySeller[nome]; if(!m) return;
+      Object.keys(s).forEach(k=>{ s[k] += (m[k] || 0); });
+    });
+    return s;
+  }
+  function aTrab(nome){ return (HOMIO.aTrabalhar.bySeller[nome]) || {inbound:0, recorrencia:0}; }
+  const cel = (v, cls)=> '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (v === null || v === undefined ? '—' : fmtInt(v)) + '</td>';
+  function linha(rotulo, m, at, tipo){
+    const tr = tipo === 'loja' ? '<tr class="saldo-row">' : (tipo === 'total' ? '<tr class="saldo-row" style="border-top:1px solid var(--line);">' : '<tr>');
+    const pad = tipo === 'vend' ? ' style="padding-left:22px;"' : '';
+    return tr + '<td class="tl"' + pad + '>' + rotulo + '</td>' +
+      cel(m && m.contatos) + cel(m && m.criadas) + cel(m && m.abertas) +
+      cel(m && m.ganhas, 'pos') + cel(m && m.perdidas, 'neg') +
+      cel(at.inbound, at.inbound > 0 ? 'warn-cell' : '') + cel(at.recorrencia, at.recorrencia > 0 ? 'warn-cell' : '') + '</tr>';
+  }
+  function somar(a, b){ const r = {}; ['contatos','criadas','abertas','ganhas','perdidas'].forEach(k=>{ r[k] = (a ? (a[k]||0) : 0) + (b ? (b[k]||0) : 0); }); return r; }
+
+  const porLoja = {};
+  HOMIO.vendedores.forEach(v=>{ (porLoja[v.loja] = porLoja[v.loja] || []).push(v.nome); });
+  const lojas = selectedStore ? [selectedStore] : HOMIO_LOJAS;
+  const linhas = [];
+  let totM = mes ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
+  let totAt = {inbound:0, recorrencia:0};
+
+  lojas.forEach(loja=>{
+    let nomes = porLoja[loja] || [];
+    if(selectedSeller) nomes = nomes.filter(n=> n === selectedSeller);
+    if(!nomes.length) return;
+    let subM = mes ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
+    const subAt = {inbound:0, recorrencia:0};
+    const linhasV = [];
+    nomes.forEach(n=>{
+      const m = metricas(n), at = aTrab(n);
+      if(mes){ subM = somar(subM, m); }
+      subAt.inbound += at.inbound; subAt.recorrencia += at.recorrencia;
+      linhasV.push(linha(n, m, at, 'vend'));
+    });
+    if(!selectedSeller) linhas.push(linha(loja, subM, subAt, 'loja'));
+    linhas.push.apply(linhas, linhasV);
+    if(mes) totM = somar(totM, subM);
+    totAt.inbound += subAt.inbound; totAt.recorrencia += subAt.recorrencia;
+  });
+
+  // contatos/oportunidades sem vendedor de loja: só aparecem sem filtro de loja/vendedor
+  if(!selectedStore && !selectedSeller){
+    [HOMIO_SEM_RESP, HOMIO_OUTROS].forEach(n=>{
+      const m = metricas(n), at = aTrab(n);
+      const temAlgo = (m && (m.contatos || m.criadas || m.abertas || m.ganhas || m.perdidas)) || at.inbound || at.recorrencia;
+      if(!temAlgo) return;
+      linhas.push(linha(n, m, at, 'vend'));
+      if(mes) totM = somar(totM, m);
+      totAt.inbound += at.inbound; totAt.recorrencia += at.recorrencia;
+    });
+  }
+  if(!selectedSeller && linhas.length) linhas.push(linha('Total', totM, totAt, 'total'));
+  tbody.innerHTML = linhas.length ? linhas.join('') : '<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);">Nenhum dado para os filtros escolhidos.</td></tr>';
+
+  // ---- oportunidades paradas, por vendedor ----
+  let lista = (HOMIO.aTrabalhar.lista || []).filter(it=>{
+    if(selectedSeller) return it.vendedor === selectedSeller;
+    if(selectedStore) return it.loja === selectedStore;
+    return true;
+  });
+  const total = lista.length;
+  const LIMITE = 60;
+  lista = lista.slice(0, LIMITE);
+  document.getElementById('homioParadasTitulo').textContent = 'Oportunidades paradas em "A Trabalhar" — ' + total + (total === 1 ? ' oportunidade' : ' oportunidades') + ' (mais antigas primeiro)';
+  const esc = s=> String(s == null ? '' : s).replace(/[&<>"]/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  tbodyP.innerHTML = lista.length ? lista.map(it=>{
+    const d = it.dias;
+    const cls = d == null ? '' : (d > 30 ? 'neg' : (d > 7 ? 'warn-cell' : ''));
+    return '<tr><td class="tl">' + esc(it.vendedor) + '</td><td class="tl">' + esc(it.loja || '—') + '</td><td class="tl">' + esc(it.nome) +
+      '</td><td class="tl">' + esc(it.funil) + '</td><td' + (cls ? ' class="' + cls + '"' : '') + '>' + (d == null ? '—' : d) + '</td></tr>';
+  }).join('') + (total > LIMITE ? '<tr><td class="tl" colspan="5" style="color:var(--ink-dim);">… e mais ' + (total - LIMITE) + ' oportunidades (use os filtros de loja/vendedor para ver o restante).</td></tr>' : '')
+    : '<tr><td class="tl" colspan="5" style="color:var(--green);">Nenhuma oportunidade parada na 1ª etapa para os filtros escolhidos.</td></tr>';
+}
+document.getElementById('homioSemana').addEventListener('change', renderHomio);
+
+// =================================================================
 // render orchestration
 // =================================================================
 function renderAll(){
@@ -1733,6 +1955,7 @@ function renderAll(){
   renderFinKPIs(mi); renderWeeklyRevenue(mi); renderInadimplencia(mi);
   renderComKPIs(mi); renderSellerRanking(mi); renderContractsWeekly(mi);
   renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi); renderCorretivas(mi);
+  renderHomio();
 }
 sel.addEventListener('change', renderAll);
 
@@ -2059,7 +2282,7 @@ async function refreshDashboard(opts){
     if(btnAtualizar){ btnAtualizar.disabled = false; btnAtualizar.textContent = '↻ Atualizar'; }
   }
 }
-if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>refreshDashboard({silent:false}));
+if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>{ refreshDashboard({silent:false}); refreshHomio({force:true}); });
 
 // carga inicial: se já existir um snapshot embutido no arquivo (MONTHS
 // preenchido), mostra ele IMEDIATAMENTE — não espera a resposta do Apps
@@ -2079,6 +2302,9 @@ if(MONTHS && MONTHS.length){
 // acima continua na tela.
 refreshDashboard({silent:true});
 setInterval(()=>refreshDashboard({silent:true}), 30000);
+// Homio: consulta ao abrir e a cada 5 min (o Apps Script ainda guarda o resultado por 10 min, para não sobrecarregar o CRM)
+refreshHomio({silent:true});
+setInterval(()=>refreshHomio({silent:true}), 300000);
 </script>
 
 </body>
