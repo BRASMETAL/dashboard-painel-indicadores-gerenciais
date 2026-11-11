@@ -1883,7 +1883,7 @@ async function refreshHomioPeriodo(opts){
   try{
     const p = await fetchHomioPeriodo(ini, fim, !!(opts && opts.force));
     if(seq !== homioPerSeq) return; // o usuário mudou as datas enquanto carregava
-    if(!p || !p.bySeller || typeof p.bySeller !== 'object') throw new Error('Resposta do Homio (período) incompleta.');
+    if(!p || !p.bySeller || typeof p.bySeller !== 'object') throw new Error('O Apps Script publicado não respondeu com dados de período — provavelmente ainda está na versão anterior do Code.gs. Publique a nova versão (Implantar > Gerenciar implantações > editar > Nova versão).');
     HOMIO_PER = p; HOMIO_PER_ERRO = null;
   } catch(err){
     if(seq !== homioPerSeq) return;
@@ -1961,7 +1961,7 @@ function renderHomio(){
     const rot = 'Período ' + fmtDataISO(periodoIni) + ' a ' + fmtDataISO(periodoFim);
     if(HOMIO_PER_ERRO){
       status.style.color = 'var(--red)';
-      status.textContent = HOMIO_MSG_FALHA.replace('Os dados exibidos são da última atualização bem-sucedida.', perDados ? 'Os dados exibidos são da última atualização bem-sucedida (' + formatarDataHora(new Date(perDados.generatedAt)) + ').' : 'Ainda não há dados deste período.');
+      status.textContent = HOMIO_MSG_FALHA.replace('Os dados exibidos são da última atualização bem-sucedida.', perDados ? 'Os dados exibidos são da última atualização bem-sucedida (' + formatarDataHora(new Date(perDados.generatedAt)) + ').' : 'Ainda não há dados deste período.') + ' Detalhe: ' + HOMIO_PER_ERRO;
     } else if(perDados){
       status.style.color = 'var(--ink-dim)';
       status.textContent = rot + ' · Homio atualizado em ' + formatarDataHora(new Date(perDados.generatedAt)) + (perDados.cache ? ' (consulta guardada por até 10 min)' : '');
@@ -2116,7 +2116,7 @@ function renderMotivos(){
     selSem.innerHTML = '<option value="mes">Filtro de data (lateral)</option>'; selSem.disabled = true;
     const rot = fmtDataISO(periodoIni) + ' a ' + fmtDataISO(periodoFim);
     status.style.color = HOMIO_PER_ERRO ? 'var(--red)' : 'var(--ink-dim)';
-    status.textContent = HOMIO_PER_ERRO ? (perDados ? HOMIO_MSG_FALHA : 'Não foi possível atualizar os dados. Ainda não há dados deste período.') : 'Período ' + rot;
+    status.textContent = HOMIO_PER_ERRO ? ((perDados ? HOMIO_MSG_FALHA : 'Não foi possível atualizar os dados. Ainda não há dados deste período.') + ' Detalhe: ' + HOMIO_PER_ERRO) : 'Período ' + rot;
     if(!perDados){ mostra(HOMIO_PER_ERRO ? 'Sem dados do período no Homio.' : 'Carregando ' + rot + ' no Homio…', HOMIO_PER_ERRO ? 'var(--red)' : null); return; }
   } else {
     selSem.disabled = false;
