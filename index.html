@@ -495,6 +495,7 @@ let OPORTUNIDADES_COUNT = _D0.OPORTUNIDADES_COUNT;
 let CONTRACTS_META = _D0.CONTRACTS_META;
 let WEEKLY_INADIMPLENCIA = _D0.WEEKLY_INADIMPLENCIA;
 let SELLERS = _D0.SELLERS;
+let SELLERS_WEEKLY = _D0.SELLERS_WEEKLY;
 
 const unitColors = {
   Serra:"#6a9bff", "Vila Velha":"#4fd399", "Guarapari (leve)":"#f0b45e", "Guarapari (pesada)":"#d68bff",
@@ -883,11 +884,18 @@ function hexToRgba(hex, alpha){
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
+function sellerLoja(nome){
+  for(const mes of [MONTHS[parseInt(sel.value)]].concat(MONTHS.slice().reverse())){
+    const v = (SELLERS[mes]||{})[nome]; if(v && v.loja) return v.loja;
+  }
+  return null;
+}
 function renderContractsWeekly(mi){
   const m = MONTHS[mi];
   const COM_STORES = opStoresForFilter();
   let labels = [];
-  COM_STORES.forEach(store=>{
+  // com vendedor selecionado, as semanas vêm de todas as lojas (o vendedor tem prioridade sobre a loja)
+  (selectedSeller ? ['Guarapari','Serra','Vila Velha'] : COM_STORES).forEach(store=>{
     ((CONTRACTS_ACHIEVED[store] && CONTRACTS_ACHIEVED[store][m] || {}).leve||[]).forEach(w=>{ if(!labels.includes(w.label)) labels.push(w.label); });
   });
 
@@ -937,7 +945,28 @@ function renderContractsWeekly(mi){
 
   // uma linha por loja (Guarapari em duas: leve e pesada, cada uma com a sua meta)
   const linhas = [];
-  COM_STORES.forEach(store=>{
+  if(selectedSeller){
+    // produção semanal do vendedor selecionado (sem meta individual na planilha)
+    const sw = (SELLERS_WEEKLY[m]||{})[selectedSeller] || {leve:[],pesada:[]};
+    const toV = arr => (arr||[]).map(w=>({label:w.label, value:w.value}));
+    const toC = arr => (arr||[]).map(w=>({label:w.label, value:w.count}));
+    // meta do vendedor: leve = meta da loja ÷ nº de vendedores (Serra/Vila Velha: 2; Guarapari: 3)
+    const loja = sellerLoja(selectedSeller);
+    const div = {Guarapari:3, Serra:2, 'Vila Velha':2}[loja] || null;
+    const dv = x => (x==null || !div) ? null : x/div;
+    const mtLeve = loja ? comMeta(loja, m) : {meta:null, media:null};
+    linhas.push({nome:selectedSeller + ' (leve)', cor:'#f0b45e', valores:toV(sw.leve), qtds:toC(sw.leve), media:dv(mtLeve.media), metaMes:dv(mtLeve.meta)});
+    const temPesada = (sw.pesada||[]).some(w=>(w.value||0)>0 || (w.count||0)>0);
+    if(loja){
+      // meta pesada: Guarapari = meta ÷ 3 vendedores; filiais (Serra/Vila Velha) = meta da pesada ÷ 12 por loja, ÷ 2 por vendedor
+      const gP = CONTRACTS_META['Guarapari (pesada)'][m] || {meta:null,media:null};
+      const mtP = loja==='Guarapari' ? gP : {meta: gP.meta==null ? null : gP.meta/12, media: gP.media==null ? null : gP.media/12};
+      linhas.push({nome:selectedSeller + ' (pesada)', cor:'#d68bff', valores:toV(sw.pesada), qtds:toC(sw.pesada), media:dv(mtP.media), metaMes:dv(mtP.meta)});
+    } else if(temPesada){
+      linhas.push({nome:selectedSeller + ' (pesada)', cor:'#d68bff', valores:toV(sw.pesada), qtds:toC(sw.pesada), media:null, metaMes:null});
+    }
+  }
+  if(!selectedSeller) COM_STORES.forEach(store=>{
     const data = (CONTRACTS_ACHIEVED[store]||{})[m] || {leve:[],pesada:[]};
     const dataC = (CONTRACTS_COUNT[store]||{})[m] || {leve:[],pesada:[]};
     if(store==='Guarapari'){
@@ -991,7 +1020,7 @@ function renderContractsWeekly(mi){
   tfoot.innerHTML = linhas.length ? `
     <tr class="saldo-row"><td>Total geral</td><td>${temMeta ? fmtR$(totalMedia) : '—'}</td>${totalCells}
       <td>${fmtR$(totalReal)}</td><td>${temMeta ? fmtR$(totalMetaMes) : '—'}</td>${temMeta ? saldoCell(totalReal,totalMetaMes) : '<td>—</td>'}</tr>`
-    + (temMeta ? '' : `<tr style="color:var(--ink-dim);"><td colspan="${5+labels.length}">Meta de contratos não disponível na planilha para ${m}.</td></tr>`) : '';
+    + (temMeta ? '' : `<tr style="color:var(--ink-dim);"><td colspan="${5+labels.length}">${selectedSeller ? 'Meta de contratos individual não disponível para ' + selectedSeller + ' em ' + m + '.' : 'Meta de contratos não disponível na planilha para ' + m + '.'}</td></tr>`) : '';
 }
 
 const WEEK_STORES_FIN = ["Serra","Vila Velha","Guarapari (leve)","Guarapari (pesada)"];
@@ -2202,7 +2231,7 @@ function defaultDataShape(){
       propostasLeve: { Guarapari:[], Serra:[], "Vila Velha":[] },
       propostasPesada: { Guarapari:[], Serra:[], "Vila Velha":[] }
     },
-    SELLERS: {},
+    SELLERS: {}, SELLERS_WEEKLY: {},
     CONTRACTS_ACHIEVED: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
     CONTRACTS_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
     PROPOSTAS_COUNT: { Guarapari:{}, Serra:{}, "Vila Velha":{} },
@@ -2256,6 +2285,7 @@ function ensureShape(payload, defaults){
     propostasPesada: fillMissingStoreKeys(pCBS.propostasPesada, defaults.COM_BY_STORE.propostasPesada)
   };
   out.SELLERS = (p.SELLERS && typeof p.SELLERS==='object') ? p.SELLERS : defaults.SELLERS;
+  out.SELLERS_WEEKLY = (p.SELLERS_WEEKLY && typeof p.SELLERS_WEEKLY==='object') ? p.SELLERS_WEEKLY : defaults.SELLERS_WEEKLY;
 
   out.CONTRACTS_ACHIEVED = fillMissingStoreKeys(p.CONTRACTS_ACHIEVED, defaults.CONTRACTS_ACHIEVED);
   out.CONTRACTS_COUNT = fillMissingStoreKeys(p.CONTRACTS_COUNT, defaults.CONTRACTS_COUNT);
@@ -2308,6 +2338,7 @@ async function refreshDashboard(opts){
     COM = data.COM;
     COM_BY_STORE = data.COM_BY_STORE;
     SELLERS = data.SELLERS;
+    SELLERS_WEEKLY = data.SELLERS_WEEKLY;
     CONTRACTS_ACHIEVED = data.CONTRACTS_ACHIEVED;
     CONTRACTS_COUNT = data.CONTRACTS_COUNT;
     PROPOSTAS_COUNT = data.PROPOSTAS_COUNT;
