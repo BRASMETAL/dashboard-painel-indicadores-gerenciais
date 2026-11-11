@@ -954,7 +954,8 @@ function renderContractsWeekly(mi){
     const loja = sellerLoja(selectedSeller);
     const div = {Guarapari:3, Serra:2, 'Vila Velha':2}[loja] || null;
     const dv = x => (x==null || !div) ? null : x/div;
-    const mtLeve = loja ? comMeta(loja, m) : {meta:null, media:null};
+    // Guarapari: usar só a meta da linha leve (comMeta soma leve + pesada)
+    const mtLeve = !loja ? {meta:null, media:null} : (loja==='Guarapari' ? (CONTRACTS_META['Guarapari (leve)'][m] || {meta:null,media:null}) : comMeta(loja, m));
     linhas.push({nome:selectedSeller + ' (leve)', cor:'#f0b45e', valores:toV(sw.leve), qtds:toC(sw.leve), media:dv(mtLeve.media), metaMes:dv(mtLeve.meta)});
     const temPesada = (sw.pesada||[]).some(w=>(w.value||0)>0 || (w.count||0)>0);
     if(loja){
