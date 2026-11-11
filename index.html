@@ -106,6 +106,16 @@
     width:100%;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
     border-radius:8px;padding:7px 10px;font-size:12.5px;margin-bottom:14px;
   }
+  .sidebar-filters input[type=date]{
+    width:100%;box-sizing:border-box;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font-size:12.5px;margin-bottom:10px;color-scheme:dark;
+  }
+  .sidebar-filters .sf-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .sidebar-filters .sf-chips button{
+    background:var(--panel-2);color:var(--ink-dim);border:1px solid var(--line);border-radius:999px;
+    padding:3px 10px;font-size:11px;cursor:pointer;
+  }
+  .sidebar-filters .sf-chips button:hover{color:var(--ink);border-color:var(--blue);}
   .sidebar-filters .sf-title{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--ink-dim);
     text-transform:uppercase;margin-bottom:12px;}
   .main-content{flex:1;min-width:0;}
@@ -139,6 +149,18 @@
     <option value="">Todos os vendedores</option>
   </select>
   <div id="filterActiveNote" style="font-size:11px;color:var(--amber);margin-top:2px;"></div>
+  <div class="sf-title" style="margin-top:16px;">Data · CRM Homio</div>
+  <label class="sf-label" for="filterDataIni">De</label>
+  <input type="date" id="filterDataIni">
+  <label class="sf-label" for="filterDataFim">Até</label>
+  <input type="date" id="filterDataFim">
+  <div class="sf-chips">
+    <button type="button" data-per="hoje">Hoje</button>
+    <button type="button" data-per="ontem">Ontem</button>
+    <button type="button" data-per="7">7 dias</button>
+    <button type="button" id="filterDataLimpar">Limpar</button>
+  </div>
+  <div id="filterDataNota" style="font-size:11px;color:var(--ink-dim);line-height:1.4;">Busca direto no Homio, sem depender da planilha. Vale só para os blocos do CRM (funil Homio e motivos de perda).</div>
 </aside>
 <div class="main-content">
 
@@ -322,6 +344,16 @@
         <div class="chart-wrap" id="chartConvVilaVelha"></div>
       </div>
     </div>
+  </div>
+  <div class="panel" id="panelMotivos">
+    <h2>Motivos de perda das oportunidades <span class="badge forecast">Homio · ao vivo</span></h2>
+    <div class="desc">Oportunidades perdidas, por motivo registrado no CRM. Considera as oportunidades criadas no período escolhido que hoje estão com status perdido (mesmo critério da coluna Perdidas). Respeita os filtros de loja e vendedor.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+      <label for="motivosSemana" style="font-size:11px;color:var(--ink-dim);">Período</label>
+      <select id="motivosSemana"><option value="mes">Mês inteiro</option></select>
+      <span id="motivosStatus" style="font-size:11.5px;color:var(--ink-dim);"></span>
+    </div>
+    <div class="chart-wrap" id="chartMotivos"></div>
   </div>
   <div class="panel" style="margin-bottom:16px;">
     <h2>Ranking de vendedores</h2>
@@ -1806,6 +1838,97 @@ function fetchHomioData(force, timeoutMs){
   });
 }
 
+// ---- filtro de data (período livre, direto do Homio) ----
+let HOMIO_PER = null;          // último payload do período
+let HOMIO_PER_ERRO = null;
+let homioPerSeq = 0;
+let periodoIni = '', periodoFim = '';   // AAAA-MM-DD ('' = filtro desligado)
+const periodoAtivo = ()=> !!(periodoIni && periodoFim && periodoIni <= periodoFim);
+const periodoDados = ()=> (HOMIO_PER && HOMIO_PER.ini === periodoIni && HOMIO_PER.fim === periodoFim) ? HOMIO_PER : null;
+const fmtDataISO = iso=> iso ? iso.split('-').reverse().join('/') : '';
+const hojeSP = ()=> new Date().toLocaleDateString('sv-SE', {timeZone:'America/Sao_Paulo'});
+function fetchHomioPeriodo(ini, fim, force, timeoutMs){
+  timeoutMs = timeoutMs || 120000;
+  return new Promise((resolve, reject)=>{
+    if(!APPS_SCRIPT_URL){ reject(new Error('Nenhuma URL de Apps Script configurada.')); return; }
+    const cbName = 'brasmetalHomioPerJSONP_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+    let concluido = false;
+    const script = document.createElement('script');
+    script.id = 'jsonp-script-homio-per';
+    function limpar(){
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){ window[cbName] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    const timer = setTimeout(()=>{ if(concluido) return; concluido = true; limpar(); reject(new Error('Tempo limite excedido ao consultar o Homio (' + Math.round(timeoutMs/1000) + 's).')); }, timeoutMs);
+    window[cbName] = function(payload){
+      if(concluido) return; concluido = true; limpar();
+      if(!payload){ reject(new Error('O Apps Script respondeu vazio (Homio, período).')); return; }
+      if(payload.status === 'error'){ reject(new Error(payload.message || 'Erro desconhecido ao consultar o período no Homio.')); return; }
+      resolve(payload);
+    };
+    const anterior = document.getElementById('jsonp-script-homio-per');
+    if(anterior) anterior.remove();
+    const sep = APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&';
+    script.src = APPS_SCRIPT_URL + sep + 'action=homio_periodo&ini=' + encodeURIComponent(ini) + '&fim=' + encodeURIComponent(fim) + (force ? '&force=1' : '') + '&callback=' + cbName;
+    script.onerror = function(){ if(concluido) return; concluido = true; limpar(); reject(new Error('Falha ao carregar a resposta do Apps Script (Homio, período).')); };
+    document.head.appendChild(script);
+  });
+}
+async function refreshHomioPeriodo(opts){
+  if(!periodoAtivo()) return;
+  const ini = periodoIni, fim = periodoFim, seq = ++homioPerSeq;
+  HOMIO_PER_ERRO = null;
+  if(!periodoDados()) renderHomio(); // mostra "Carregando…" quando ainda não há dados deste período
+  try{
+    const p = await fetchHomioPeriodo(ini, fim, !!(opts && opts.force));
+    if(seq !== homioPerSeq) return; // o usuário mudou as datas enquanto carregava
+    if(!p || !p.bySeller || typeof p.bySeller !== 'object') throw new Error('Resposta do Homio (período) incompleta.');
+    HOMIO_PER = p; HOMIO_PER_ERRO = null;
+  } catch(err){
+    if(seq !== homioPerSeq) return;
+    console.error('Falha ao atualizar o período no Homio:', err);
+    HOMIO_PER_ERRO = (err && err.message) || String(err);
+  } finally {
+    if(seq === homioPerSeq) renderHomio();
+  }
+}
+function aplicarFiltroData(){
+  const ini = document.getElementById('filterDataIni').value;
+  const fim = document.getElementById('filterDataFim').value;
+  const nota = document.getElementById('filterDataNota');
+  const padrao = 'Busca direto no Homio, sem depender da planilha. Vale só para os blocos do CRM (funil Homio e motivos de perda).';
+  if(ini && fim && ini > fim){
+    periodoIni = ''; periodoFim = ''; homioPerSeq++;
+    nota.style.color = 'var(--amber)'; nota.textContent = 'A data final deve ser igual ou posterior à inicial.';
+    renderHomio(); return;
+  }
+  if(ini && fim){
+    periodoIni = ini; periodoFim = fim; nota.style.color = 'var(--ink-dim)';
+    nota.textContent = 'Período ativo: ' + fmtDataISO(ini) + ' a ' + fmtDataISO(fim) + '. Os blocos do CRM não dependem mais da planilha semanal.';
+    refreshHomioPeriodo({});
+  } else {
+    periodoIni = ''; periodoFim = ''; homioPerSeq++; HOMIO_PER_ERRO = null;
+    nota.style.color = 'var(--ink-dim)'; nota.textContent = (ini || fim) ? 'Preencha as duas datas (De e Até) para filtrar.' : padrao;
+    renderHomio();
+  }
+}
+(function iniciarFiltroData(){
+  const i = document.getElementById('filterDataIni'), f = document.getElementById('filterDataFim');
+  const hoje = hojeSP(); i.max = hoje; f.max = hoje;
+  i.addEventListener('change', aplicarFiltroData); f.addEventListener('change', aplicarFiltroData);
+  document.getElementById('filterDataLimpar').addEventListener('click', ()=>{ i.value = ''; f.value = ''; aplicarFiltroData(); });
+  document.querySelectorAll('.sf-chips button[data-per]').forEach(b=> b.addEventListener('click', ()=>{
+    const h = hojeSP(); const d = new Date(h + 'T12:00:00');
+    const sub = n=>{ const x = new Date(d); x.setDate(x.getDate() - n); return x.toLocaleDateString('sv-SE'); };
+    const k = b.dataset.per;
+    if(k === 'hoje'){ i.value = h; f.value = h; }
+    else if(k === 'ontem'){ i.value = sub(1); f.value = sub(1); }
+    else { i.value = sub(6); f.value = h; }
+    aplicarFiltroData();
+  }));
+})();
+
 async function refreshHomio(opts){
   if(homioEmAndamento) return;
   homioEmAndamento = true;
@@ -1830,9 +1953,23 @@ function renderHomio(){
   const status = document.getElementById('homioStatus');
   const aviso = document.getElementById('homioAviso');
   const selSem = document.getElementById('homioSemana');
+  const usaPer = periodoAtivo();
+  const perDados = usaPer ? periodoDados() : null;
 
   // ---- mensagem de estado ----
-  if(HOMIO_ERRO){
+  if(usaPer){
+    const rot = 'Período ' + fmtDataISO(periodoIni) + ' a ' + fmtDataISO(periodoFim);
+    if(HOMIO_PER_ERRO){
+      status.style.color = 'var(--red)';
+      status.textContent = HOMIO_MSG_FALHA.replace('Os dados exibidos são da última atualização bem-sucedida.', perDados ? 'Os dados exibidos são da última atualização bem-sucedida (' + formatarDataHora(new Date(perDados.generatedAt)) + ').' : 'Ainda não há dados deste período.');
+    } else if(perDados){
+      status.style.color = 'var(--ink-dim)';
+      status.textContent = rot + ' · Homio atualizado em ' + formatarDataHora(new Date(perDados.generatedAt)) + (perDados.cache ? ' (consulta guardada por até 10 min)' : '');
+    } else {
+      status.style.color = 'var(--ink-dim)';
+      status.textContent = 'Carregando ' + rot.toLowerCase() + ' no Homio…';
+    }
+  } else if(HOMIO_ERRO){
     status.style.color = 'var(--red)';
     status.textContent = HOMIO_MSG_FALHA + (HOMIO ? ' Última atualização bem-sucedida: ' + formatarDataHora(new Date(HOMIO.generatedAt)) + '.' : ' Ainda não há dados do Homio carregados.');
   } else if(HOMIO){
@@ -1846,6 +1983,7 @@ function renderHomio(){
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);">' + (HOMIO_ERRO ? 'Sem dados do Homio.' : 'Carregando…') + '</td></tr>';
     tbodyP.innerHTML = '';
     aviso.textContent = '';
+    renderMotivos();
     return;
   }
 
@@ -1854,15 +1992,25 @@ function renderHomio(){
   const mes = HOMIO.months[mesCod];
 
   // ---- seletor de período (mês inteiro / cada semana já iniciada) ----
+  const temDados = usaPer ? !!perDados : !!mes;
   const anterior = selSem.value;
   const ops = ['<option value="mes">Mês inteiro (semanas iniciadas)</option>'];
   if(mes) mes.weeks.forEach((w,i)=>{ if(w.iniciada) ops.push('<option value="' + i + '">' + w.label + (w.atual ? ' (em andamento)' : '') + '</option>'); });
-  selSem.innerHTML = ops.join('');
-  if(Array.from(selSem.options).some(o=>o.value === anterior)) selSem.value = anterior;
-  aviso.textContent = mes ? '' : ('Sem dados do Homio para ' + (mesCod || 'este mês') + ': o painel carrega o mês atual e o anterior' +
+  if(usaPer){ selSem.innerHTML = '<option value="mes">Filtro de data (lateral)</option>'; selSem.disabled = true; }
+  else {
+    selSem.disabled = false;
+    selSem.innerHTML = ops.join('');
+    if(Array.from(selSem.options).some(o=>o.value === anterior)) selSem.value = anterior;
+  }
+  aviso.textContent = usaPer ? '' : mes ? '' : ('Sem dados do Homio para ' + (mesCod || 'este mês') + ': o painel carrega o mês atual e o anterior' +
     (HOMIO.mesAtual ? ' (' + HOMIO.mesAtual + ' e o mês anterior)' : '') + '. As colunas "A trabalhar" continuam sendo o retrato de hoje.');
 
   function metricas(nome){
+    if(usaPer){
+      if(!perDados) return null;
+      const b = perDados.bySeller[nome] || {};
+      return {contatos:b.contatos||0, criadas:b.criadas||0, abertas:b.abertas||0, ganhas:b.ganhas||0, perdidas:b.perdidas||0};
+    }
     if(!mes) return null;
     const v = selSem.value;
     const s = {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0};
@@ -1890,25 +2038,25 @@ function renderHomio(){
   HOMIO.vendedores.forEach(v=>{ (porLoja[v.loja] = porLoja[v.loja] || []).push(v.nome); });
   const lojas = selectedStore ? [selectedStore] : HOMIO_LOJAS;
   const linhas = [];
-  let totM = mes ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
+  let totM = temDados ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
   let totAt = {inbound:0, recorrencia:0};
 
   lojas.forEach(loja=>{
     let nomes = porLoja[loja] || [];
     if(selectedSeller) nomes = nomes.filter(n=> n === selectedSeller);
     if(!nomes.length) return;
-    let subM = mes ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
+    let subM = temDados ? {contatos:0, criadas:0, abertas:0, ganhas:0, perdidas:0} : null;
     const subAt = {inbound:0, recorrencia:0};
     const linhasV = [];
     nomes.forEach(n=>{
       const m = metricas(n), at = aTrab(n);
-      if(mes){ subM = somar(subM, m); }
+      if(temDados){ subM = somar(subM, m); }
       subAt.inbound += at.inbound; subAt.recorrencia += at.recorrencia;
       linhasV.push(linha(n, m, at, 'vend'));
     });
     if(!selectedSeller) linhas.push(linha(loja, subM, subAt, 'loja'));
     linhas.push.apply(linhas, linhasV);
-    if(mes) totM = somar(totM, subM);
+    if(temDados) totM = somar(totM, subM);
     totAt.inbound += subAt.inbound; totAt.recorrencia += subAt.recorrencia;
   });
 
@@ -1919,7 +2067,7 @@ function renderHomio(){
       const temAlgo = (m && (m.contatos || m.criadas || m.abertas || m.ganhas || m.perdidas)) || at.inbound || at.recorrencia;
       if(!temAlgo) return;
       linhas.push(linha(n, m, at, 'vend'));
-      if(mes) totM = somar(totM, m);
+      if(temDados) totM = somar(totM, m);
       totAt.inbound += at.inbound; totAt.recorrencia += at.recorrencia;
     });
   }
@@ -1944,8 +2092,107 @@ function renderHomio(){
       '</td><td class="tl">' + esc(it.funil) + '</td><td' + (cls ? ' class="' + cls + '"' : '') + '>' + (d == null ? '—' : d) + '</td></tr>';
   }).join('') + (total > LIMITE ? '<tr><td class="tl" colspan="5" style="color:var(--ink-dim);">… e mais ' + (total - LIMITE) + ' oportunidades (use os filtros de loja/vendedor para ver o restante).</td></tr>' : '')
     : '<tr><td class="tl" colspan="5" style="color:var(--green);">Nenhuma oportunidade parada na 1ª etapa para os filtros escolhidos.</td></tr>';
+  renderMotivos();
 }
 document.getElementById('homioSemana').addEventListener('change', renderHomio);
+
+// ---- motivos de perda (Homio) — barras horizontais, ordenadas do maior para o menor ----
+function renderMotivos(){
+  const box = document.getElementById('chartMotivos');
+  if(!box) return;
+  const status = document.getElementById('motivosStatus');
+  const selSem = document.getElementById('motivosSemana');
+  const mostra = (txt, cor)=>{ box.innerHTML = '<div style="padding:18px;text-align:center;color:' + (cor || 'var(--ink-dim)') + ';font-size:12px;">' + txt + '</div>'; };
+  const usaPer = periodoAtivo();
+  const perDados = usaPer ? periodoDados() : null;
+  if(!HOMIO){
+    status.textContent = '';
+    mostra(HOMIO_ERRO ? 'Sem dados do Homio. ' + HOMIO_MSG_FALHA : 'Carregando dados do Homio…');
+    return;
+  }
+  const mesCod = MONTHS[parseInt(sel.value)];
+  const mes = HOMIO.months[mesCod];
+  if(usaPer){
+    selSem.innerHTML = '<option value="mes">Filtro de data (lateral)</option>'; selSem.disabled = true;
+    const rot = fmtDataISO(periodoIni) + ' a ' + fmtDataISO(periodoFim);
+    status.style.color = HOMIO_PER_ERRO ? 'var(--red)' : 'var(--ink-dim)';
+    status.textContent = HOMIO_PER_ERRO ? (perDados ? HOMIO_MSG_FALHA : 'Não foi possível atualizar os dados. Ainda não há dados deste período.') : 'Período ' + rot;
+    if(!perDados){ mostra(HOMIO_PER_ERRO ? 'Sem dados do período no Homio.' : 'Carregando ' + rot + ' no Homio…', HOMIO_PER_ERRO ? 'var(--red)' : null); return; }
+  } else {
+    selSem.disabled = false;
+    status.textContent = HOMIO_ERRO ? (HOMIO_MSG_FALHA + ' Última atualização bem-sucedida: ' + formatarDataHora(new Date(HOMIO.generatedAt)) + '.') : '';
+    status.style.color = HOMIO_ERRO ? 'var(--red)' : 'var(--ink-dim)';
+    const anterior = selSem.value;
+    const ops = ['<option value="mes">Mês inteiro (semanas iniciadas)</option>'];
+    if(mes) mes.weeks.forEach((w,i)=>{ if(w.iniciada) ops.push('<option value="' + i + '">' + w.label + (w.atual ? ' (em andamento)' : '') + '</option>'); });
+    selSem.innerHTML = ops.join('');
+    if(Array.from(selSem.options).some(o=>o.value === anterior)) selSem.value = anterior;
+    if(!mes){ mostra('Sem dados do Homio para ' + (mesCod || 'este mês') + ': o painel carrega o mês atual e o anterior. Use o filtro de data na lateral para outro intervalo.'); return; }
+  }
+
+  const porLoja = {};
+  HOMIO.vendedores.forEach(v=>{ (porLoja[v.loja] = porLoja[v.loja] || []).push(v.nome); });
+  let nomes;
+  if(selectedSeller) nomes = [selectedSeller];
+  else if(selectedStore) nomes = porLoja[selectedStore] || [];
+  else nomes = null; // todos, inclusive "Sem responsável" e "Outros"
+  const v = selSem.value;
+  const cont = {};
+  let temMotivos = false;
+  const fontes = usaPer ? [perDados.bySeller] : mes.weeks.filter((w,i)=> w.iniciada && (v === 'mes' || String(i) === v)).map(w=>w.bySeller);
+  fontes.forEach(by=>{
+    Object.keys(by).forEach(n=>{
+      if(nomes && nomes.indexOf(n) === -1) return;
+      const mm = by[n].motivos;
+      if(!mm) return;
+      temMotivos = true;
+      Object.keys(mm).forEach(k=>{ cont[k] = (cont[k] || 0) + mm[k]; });
+    });
+  });
+  if(!temMotivos){ mostra('Os motivos de perda ainda não vieram do Apps Script. Publique a nova versão do Code.gs e clique em "Atualizar dados".', 'var(--amber)'); return; }
+  const itens = Object.keys(cont).map(k=>({nome:k, n:cont[k]})).filter(x=>x.n > 0).sort((a,b)=> b.n - a.n || a.nome.localeCompare(b.nome, 'pt-BR'));
+  if(!itens.length){ mostra('Nenhuma oportunidade perdida no período e filtros escolhidos.', 'var(--green)'); return; }
+  const total = itens.reduce((s,x)=>s+x.n, 0);
+  const TOP = 10;
+  const top = itens.slice(0, TOP);
+  const resto = itens.slice(TOP).reduce((s,x)=>s+x.n, 0);
+  const w = 1000, h = 380, padL = 130, padR = 14, padT = 22, padB = 150;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const passo = (m=>{ const a=[1,2,3,5,10,20,25,50,100,200,500]; return a.find(x=>m/x<=6) || 1000; })(top[0].n);
+  const maxV = Math.ceil(top[0].n / passo) * passo;
+  const svg = svgRoot(w, h);
+  for(let v=0; v<=maxV; v+=passo){
+    const y = padT + plotH - (plotH * v / maxV);
+    svg.appendChild(el('line',{x1:padL,x2:w-padR,y1:y,y2:y,class:'axis-line'}));
+    const t = el('text',{x:padL-8,y:y+3,'text-anchor':'end',class:'bar-label'});
+    t.textContent = fmtInt(v); svg.appendChild(t);
+  }
+  const eixo = el('text',{x:14,y:padT+plotH/2,'text-anchor':'middle',class:'bar-label',transform:'rotate(-90 14 ' + (padT+plotH/2) + ')'});
+  eixo.textContent = 'Total de oportunidades perdidas'; svg.appendChild(eixo);
+  const groupW = plotW / top.length, barW = Math.min(46, groupW * 0.55);
+  top.forEach((it,i)=>{
+    const cor = it.nome === 'Motivo não mapeado' ? '#f0b45e' : (it.nome === 'Sem motivo informado' ? '#8693ad' : '#6a9bff');
+    const bh = (it.n / maxV) * plotH;
+    const cx = padL + i*groupW + groupW/2;
+    const rect = el('rect',{x:cx-barW/2, y:padT+plotH-bh, width:barW, height:bh, fill: ensureBarGradient(svg, cor, true), rx:5});
+    const pct = it.n/total*100;
+    bindTip(rect, ()=> '<strong>' + it.nome.replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</strong><br>' + fmtInt(it.n) + (it.n === 1 ? ' perda' : ' perdas') + ' · ' + pct.toFixed(1).replace('.', ',') + '% do total');
+    svg.appendChild(rect);
+    const val = el('text',{x:cx, y:padT+plotH-bh-6, 'text-anchor':'middle', class:'bar-label', style:'font-size:11px;'});
+    val.textContent = fmtInt(it.n); svg.appendChild(val);
+    const ty = padT + plotH + 12;
+    const lab = el('text',{x:cx, y:ty, 'text-anchor':'end', class:'bar-label', style:'font-size:11px;', transform:'rotate(-40 ' + cx + ' ' + ty + ')'});
+    lab.textContent = it.nome.length > 28 ? it.nome.slice(0,27) + '…' : it.nome;
+    const tt = el('title',{}); tt.textContent = it.nome; lab.appendChild(tt);
+    svg.appendChild(lab);
+  });
+  box.innerHTML = ''; box.appendChild(svg);
+  const rod = document.createElement('div');
+  rod.style.cssText = 'font-size:11.5px;color:var(--ink-dim);margin-top:6px;';
+  rod.textContent = 'Total de oportunidades perdidas no período: ' + fmtInt(total) + (itens.length > TOP ? ' · exibindo os ' + TOP + ' principais motivos' + (resto ? ' (' + fmtInt(resto) + ' perdas em outros ' + (itens.length - TOP) + ' motivos)' : '') : '');
+  box.appendChild(rod);
+}
+document.getElementById('motivosSemana').addEventListener('change', renderMotivos);
 
 // =================================================================
 // render orchestration
@@ -2282,7 +2529,7 @@ async function refreshDashboard(opts){
     if(btnAtualizar){ btnAtualizar.disabled = false; btnAtualizar.textContent = '↻ Atualizar'; }
   }
 }
-if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>{ refreshDashboard({silent:false}); refreshHomio({force:true}); });
+if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>{ refreshDashboard({silent:false}); refreshHomio({force:true}); refreshHomioPeriodo({force:true}); });
 
 // carga inicial: se já existir um snapshot embutido no arquivo (MONTHS
 // preenchido), mostra ele IMEDIATAMENTE — não espera a resposta do Apps
@@ -2304,7 +2551,7 @@ refreshDashboard({silent:true});
 setInterval(()=>refreshDashboard({silent:true}), 30000);
 // Homio: consulta ao abrir e a cada 5 min (o Apps Script ainda guarda o resultado por 10 min, para não sobrecarregar o CRM)
 refreshHomio({silent:true});
-setInterval(()=>refreshHomio({silent:true}), 300000);
+setInterval(()=>{ refreshHomio({silent:true}); refreshHomioPeriodo({}); }, 300000);
 </script>
 
 </body>
