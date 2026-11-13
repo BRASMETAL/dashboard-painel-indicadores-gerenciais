@@ -366,14 +366,6 @@
       <tbody></tbody>
     </table>
   </div>
-  <div class="panel">
-    <h2>Resumo mensal — comercial</h2>
-    <div class="desc">Base para a reunião semanal de resultados.</div>
-    <table id="tableCom">
-      <thead><tr><th style="text-align:left;">Mês</th><th>Contatos</th><th>Oport. criadas</th><th>Ganhas</th><th>Perdidas</th><th>Conversão</th><th>Contratos fechados</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
 </div>
 
 <!-- ===================== OPERACIONAL ===================== -->
@@ -407,14 +399,14 @@
   </div>
   <div class="panel">
     <h2>Visita técnica corretiva — linha leve e pesada</h2>
-    <div class="desc">Semana a semana, mês selecionado no filtro acima. Meta leve: 6/mês (2 por loja, total empresa). Meta pesada (matriz Guarapari): 8/mês.</div>
+    <div class="desc">Semana a semana, mês selecionado no filtro acima. Meta mensal ÷ 4 semanas: leve 6/mês (2 por loja) = 1,5 por semana no total, 0,5 por loja; pesada (matriz Guarapari) 8/mês = 2 por semana.</div>
     <div class="grid halves" id="gridCorretivas">
       <div>
         <h3 id="tituloCorretivasLeve" style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha leve — total empresa</h3>
         <div class="chart-wrap" id="chartCorretivasLeve"></div>
       </div>
       <div id="wrapCorretivasPesada">
-        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha pesada — matriz Guarapari</h3>
+        <h3 style="font-size:12px;color:var(--ink-dim);margin:0 0 8px;">Linha pesada — matriz Guarapari (meta 8/mês · 2/semana)</h3>
         <div class="chart-wrap" id="chartCorretivasPesada"></div>
       </div>
     </div>
@@ -1464,37 +1456,6 @@ function renderSellerRanking(mi){
   }).join('');
 }
 
-function renderTableCom(){
-  const storesForCom = opStoresForFilter();
-  document.querySelector('#tableCom tbody').innerHTML = MONTHS.map((m,i)=>{
-    let contatos, oportCriadas, oportGanhas, oportPerdidas, contratosLeveFiltrado;
-    if(selectedSeller){
-      const sv = (SELLERS[m] && SELLERS[m][selectedSeller]) || {};
-      contatos = sv.contatos || 0; oportCriadas = sv.oportCriadas || 0;
-      oportGanhas = sv.ganhas || 0; oportPerdidas = sv.oportPerdidas || 0;
-      contratosLeveFiltrado = sv.contratosLeve || 0;
-    } else if(selectedStore){
-      contatos = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.contatos[store][i]||0), 0);
-      oportCriadas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportCriadas[store][i]||0), 0);
-      oportGanhas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportGanhas[store][i]||0), 0);
-      oportPerdidas = storesForCom.reduce((s,store)=> s+(COM_BY_STORE.oportPerdidas[store][i]||0), 0);
-      contratosLeveFiltrado = storesForCom.reduce((s,store)=>{
-        const arr = (CONTRACTS_COUNT[store][m]||{}).leve || [];
-        return s + arr.reduce((s2,w)=>s2+(w.value||0),0);
-      }, 0);
-    } else {
-      contatos = COM.contatos[i]; oportCriadas = COM.oportCriadas[i];
-      oportGanhas = COM.oportGanhas[i]; oportPerdidas = COM.oportPerdidas[i];
-      contratosLeveFiltrado = COM.contratosFechados[i];
-    }
-    const conv = (oportGanhas+oportPerdidas)>0 ? oportGanhas/(oportGanhas+oportPerdidas)*100 : 0;
-    return `<tr><td>${m}${PARTIAL[m]?' <span class="badge partial">parcial</span>':''}</td>
-      <td>${fmtInt(contatos)}</td><td>${fmtInt(oportCriadas)}</td>
-      <td class="pos">${fmtInt(oportGanhas)}</td><td class="neg">${fmtInt(oportPerdidas)}</td>
-      <td>${conv.toFixed(1)}%</td><td>${fmtInt(contratosLeveFiltrado)}</td></tr>`;
-  }).join('');
-}
-
 // =================================================================
 // OPERACIONAL
 // =================================================================
@@ -1606,6 +1567,9 @@ function renderMetaMaquinas(){
 // diretoria): leve = 2 visitas/loja/mês; pesada (matriz Guarapari) = 8/mês
 const META_CORRETIVAS_LEVE = 2;
 const META_CORRETIVAS_PESADA = 8;
+// as metas são mensais; no gráfico semanal cada semana leva meta ÷ 4 semanas
+const SEMANAS_META_CORRETIVAS = 4;
+const fmtMetaSem = v => Number.isInteger(v) ? String(v) : v.toFixed(2).replace(/0$/,'').replace('.',',');
 
 // meta mensal da linha leve = soma das metas das 3 lojas (2 cada)
 const META_CORRETIVAS_LEVE_TOTAL = META_CORRETIVAS_LEVE * 3;
@@ -1619,7 +1583,8 @@ function renderCorretivas(mi){
   const m = MONTHS[mi];
   // respeita o filtro de loja da barra lateral
   const stores = opStoresForFilter();
-  const metaLeve = META_CORRETIVAS_LEVE * stores.length;
+  const metaLeve = META_CORRETIVAS_LEVE * stores.length;          // mensal
+  const metaLeveSem = metaLeve / SEMANAS_META_CORRETIVAS;         // semanal
   const nomeLeve = selectedStore ? selectedStore : 'total empresa';
 
   // linha pesada só existe na matriz (Guarapari): com filtro em Serra ou
@@ -1630,7 +1595,7 @@ function renderCorretivas(mi){
   if(wrapPesada) wrapPesada.style.display = mostraPesada ? '' : 'none';
   if(gridC) gridC.style.gridTemplateColumns = mostraPesada ? '' : '1fr';
   const tl = document.getElementById('tituloCorretivasLeve');
-  if(tl) tl.textContent = 'Linha leve — ' + nomeLeve + ' (meta ' + metaLeve + '/mês)';
+  if(tl) tl.textContent = 'Linha leve — ' + nomeLeve + ' (meta ' + metaLeve + '/mês · ' + fmtMetaSem(metaLeveSem) + '/semana)';
 
   let labels = [];
   stores.forEach(store=>{
@@ -1646,9 +1611,9 @@ function renderCorretivas(mi){
     return sum;
   });
   lineChart('chartCorretivasLeve', labels, [
-    {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>metaLeve)},
+    {name:'Meta (semana)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>metaLeveSem)},
     {name:'Real — ' + nomeLeve, color: selectedStore ? unitColors[selectedStore] : '#6a9bff', values: leveReal}
-  ], {w: mostraPesada ? 490 : 1000, h:260, fmt:v=>Math.round(v), showLabels:true, max: escalaInteira(metaLeve, leveReal)});
+  ], {w: mostraPesada ? 490 : 1000, h:260, fmt:v=>fmtMetaSem(Math.round(v*100)/100), showLabels:true, max: escalaInteira(metaLeveSem, leveReal)});
 
   if(mostraPesada){
     const pesadaReal = labels.map(l=>{
@@ -1656,9 +1621,9 @@ function renderCorretivas(mi){
       return w ? w.visitaPesada : null;
     });
     lineChart('chartCorretivasPesada', labels, [
-      {name:'Meta (mês)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_PESADA)},
+      {name:'Meta (semana)', color:'#f0b45e', dash:'4,3', values: labels.map(()=>META_CORRETIVAS_PESADA/SEMANAS_META_CORRETIVAS)},
       {name:'Guarapari (pesada)', color: unitColors.Guarapari, values: pesadaReal}
-    ], {w:490, h:260, fmt:v=>Math.round(v), showLabels:true, max: escalaInteira(META_CORRETIVAS_PESADA, pesadaReal)});
+    ], {w:490, h:260, fmt:v=>fmtMetaSem(Math.round(v*100)/100), showLabels:true, max: escalaInteira(META_CORRETIVAS_PESADA/SEMANAS_META_CORRETIVAS, pesadaReal)});
   }
 }
 
@@ -2061,7 +2026,7 @@ sel.addEventListener('change', renderAll);
 function renderAllData(){
   renderAll();
   if(podeVer('financeiro')){ renderRevTrend(); renderTableFin(); }
-  if(podeVer('comercial')){ renderComCharts(); renderTableCom(); }
+  if(podeVer('comercial')){ renderComCharts(); }
   if(podeVer('operacional')){ renderMetaMaquinas(); renderMaint(); renderOS(); renderTableOp(); }
 }
 
