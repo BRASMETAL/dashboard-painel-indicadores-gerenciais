@@ -87,6 +87,24 @@
 
   .footer-note{margin-top:20px;font-size:11.5px;color:var(--ink-dim);border-top:1px solid var(--line);
     padding-top:14px;line-height:1.6;}
+  .an-barra{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:var(--ink-dim);}
+  .an-barra b{color:var(--ink);font-size:14px;}
+  .an-barra button,.an-link{background:#182236;color:var(--blue);border:1px solid var(--line);border-radius:20px;font-size:11px;padding:4px 11px;cursor:pointer;font-family:inherit;}
+  .an-link{margin-left:10px;font-weight:500;vertical-align:middle;}
+  .an-sel{font-family:var(--mono);font-size:10px;padding:2px 8px;border:1px solid;border-radius:20px;margin-left:8px;vertical-align:middle;}
+  .an-kpis{display:flex;gap:26px;flex-wrap:wrap;margin:6px 0 14px;}
+  .an-kpis div{display:flex;flex-direction:column;} .an-kpis b{font-size:26px;line-height:1.1;} .an-kpis span{font-size:11px;color:var(--ink-dim);}
+  .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;} .an-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .an-col h4{margin:0 0 6px;font-size:12px;} .an-col ul,.an-col ol{margin:0;padding-left:18px;font-size:12px;line-height:1.5;} .an-col li{margin-bottom:5px;}
+  .an-tab{width:100%;border-collapse:collapse;font-size:12px;} .an-tab th{color:var(--ink-dim);font-size:11px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);} .an-tab th:first-child{text-align:left;} .an-tab td{padding:6px 8px;border-bottom:1px solid var(--line);font-family:var(--mono);}
+  .an-tab td:first-child{font-family:inherit;}
+  @media (max-width:900px){.an-grid,.an-grid3{grid-template-columns:1fr;}}
+  @media print{
+    body{background:#fff !important;color:#111 !important;} .sidebar-filters,.tabs,.controls,header .controls,.an-barra button,.an-link,#loginOverlay{display:none !important;}
+    .tab-panel{display:none !important;} #tab-analise{display:block !important;}
+    .panel{background:#fff !important;color:#111 !important;box-shadow:none !important;border:1px solid #ccc !important;break-inside:avoid;}
+    .desc,.an-tab th,.an-kpis span{color:#444 !important;} .an-tab td{border-color:#ddd !important;}
+  }
   .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;
     background:#26324a;color:var(--ink-dim);margin-left:6px;}
   .badge.partial{background:rgba(240,180,94,.14);color:var(--amber);border:1px solid rgba(240,180,94,.3);}
@@ -265,6 +283,7 @@
   <button class="tab-btn active" data-tab="financeiro">Financeiro</button>
   <button class="tab-btn" data-tab="comercial">Comercial</button>
   <button class="tab-btn" data-tab="operacional">Operacional</button>
+  <button class="tab-btn" data-tab="analise">Análise</button>
 </div>
 
 <!-- ===================== FINANCEIRO ===================== -->
@@ -379,6 +398,13 @@
 </div>
 
 <!-- ===================== OPERACIONAL ===================== -->
+<div class="tab-panel" id="tab-analise">
+  <div class="an-barra">
+    <div><b>Análise gerencial</b><span> — pontos fortes, melhorias e plano de ação por indicador, comparando o mês selecionado com o histórico da Brasmetal.</span></div>
+    <button type="button" id="btnImprimirAnalise">🖨 Imprimir / salvar em PDF</button>
+  </div>
+  <div id="analiseBox"><div class="panel"><div class="desc">Aguardando os dados do painel…</div></div></div>
+</div>
 <div class="tab-panel" id="tab-operacional">
   <div class="kpi-row" id="kpiOp" style="grid-template-columns:repeat(3,1fr);"></div>
   <div class="panel">
@@ -1918,8 +1944,9 @@ async function refreshHomio(opts){
   }
 }
 
+document.getElementById('btnImprimirAnalise').addEventListener('click', ()=>window.print());
 document.getElementById('funilPipeline').addEventListener('change', ()=>renderFunil());
-function renderHomio(){ renderMotivos(); renderFunil(); }
+function renderHomio(){ renderMotivos(); renderFunil(); try{ renderAnalise(); }catch(e){ console.error('Análise:', e); } }
 // ---- funil de vendas por etapa (Homio) ----
 let FUNIL = null, FUNIL_ERRO = null, funilSeq = 0, funilEmAndamento = false;
 const FUNIL_LOJAS = {'Erick':'Guarapari','Yhago':'Guarapari','Renata':'Guarapari','Camille':'Vila Velha','Maiara':'Vila Velha','Felype':'Vila Velha','Bárbara':'Serra','Lorrany':'Serra'};
@@ -2169,7 +2196,7 @@ function renderAll(){
   if(podeVer('operacional')){ renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi); renderCorretivas(mi); }
   if(podeVer('comercial')) renderHomio();
 }
-sel.addEventListener('change', ()=>{ renderAll(); refreshFunil({}); });
+sel.addEventListener('change', ()=>{ renderAll(); try{ renderAnalise(); }catch(e){ console.error('Análise:', e); } refreshFunil({}); });
 
 // renderiza tudo (dependente do mês + gráficos anuais fixos) — chamado
 // toda vez que novos dados chegam do Apps Script
@@ -2178,6 +2205,7 @@ function renderAllData(){
   if(podeVer('financeiro')){ renderRevTrend(); renderTableFin(); }
   if(podeVer('comercial')){ renderComCharts(); }
   if(podeVer('operacional')){ renderMetaMaquinas(); renderMaint(); renderOS(); renderTableOp(); }
+  try{ renderAnalise(); }catch(e){ console.error('Análise:', e); }
 }
 
 // =================================================================
@@ -2541,6 +2569,412 @@ function authRequest(params, timeoutMs){
   });
 }
 
+// =================================================================
+// ANÁLISE GERENCIAL — motor de regras (roda no navegador, com os dados já carregados)
+// Cada bloco: leitura numérica + pontos fortes + melhorias + plano de ação, comparando o mês
+// selecionado com o histórico dos meses anteriores da própria Brasmetal. Limites de semáforo:
+// >= 100% da meta = verde · 90% a 99,9% = atenção · < 90% = crítico (nos demais, ver o texto de cada bloco).
+// =================================================================
+const anNum = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+const anAvg = a => { const v = a.filter(x=>anNum(x) !== null); return v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; };
+const anSum = a => a.reduce((s,x)=>s+(anNum(x)||0), 0);
+const anPct = (a,b)=> (anNum(a) !== null && anNum(b)) ? a/b*100 : null;
+const fP = v => v == null ? '—' : v.toFixed(1).replace('.', ',') + '%';
+const fPP = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + ' p.p.';
+const fVar = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1).replace('.', ',') + '%';
+const anStat = p => p == null ? 'info' : (p >= 100 ? 'ok' : (p >= 90 ? 'at' : 'cr'));
+const anRank = {cr:3, at:2, info:1, ok:0};
+const anPior = (a,b)=> anRank[b] > anRank[a] ? b : a;
+function anBloco(id, area, titulo, chartTitle){ return {id, area, titulo, chartTitle, status:'info', tab:null, fortes:[], melhorias:[], acoes:[], notas:[]}; }
+function anHist(arr, mi){ return arr.slice(0, mi).filter(x=>anNum(x) !== null); }
+
+function anFinFat(mi){
+  const m = MONTHS[mi], units = Object.keys(FIN.revenue);
+  const b = anBloco('an_fin_fat', 'financeiro', 'Faturamento realizado × meta', ['Resultado semanal por loja','Evolução mensal']);
+  b.tab = {head:['Unidade','Realizado','Meta','Atingimento','Projeção do mês','Média histórica de atingimento'], rows:[]};
+  let tReal = 0, tMeta = 0, tProj = 0, algum = false;
+  units.forEach(u=>{
+    const real = anNum(FIN.revenue[u][mi]), meta = anNum(FIN.meta[u][mi]);
+    if(real == null || !meta) return;
+    algum = true;
+    const wk = ((WEEKLY_REVENUE[u] || {})[m] || {}).weeks || [];
+    const feitas = wk.filter(w=>anNum(w.value)).length, tot = wk.length, restantes = tot - feitas;
+    const andamento = tot > 0 && feitas > 0 && restantes > 0;
+    const proj = andamento ? real / feitas * tot : real;
+    const ating = real / meta * 100, atingProj = proj / meta * 100;
+    const hist = FIN.revenue[u].map((r,i)=> i < mi ? anPct(anNum(r), anNum(FIN.meta[u][i])) : null).filter(x=>x !== null);
+    const mediaH = anAvg(hist);
+    const bateu = hist.slice(-6).filter(x=>x >= 100).length, janela = hist.slice(-6).length;
+    tReal += real; tMeta += meta; tProj += proj;
+    const st = anStat(andamento ? atingProj : ating); b.status = anPior(b.status, st);
+    b.tab.rows.push([u, fmtR$(real), fmtR$(meta), fP(ating), andamento ? fmtR$(proj) + ' (' + fP(atingProj) + ')' : 'mês fechado', fP(mediaH)]);
+    const ref = andamento ? atingProj : ating;
+    if(ref >= 100) b.fortes.push(u + ': ' + (andamento ? 'ritmo projeta ' + fP(atingProj) : fP(ating)) + ' da meta' + (andamento ? '' : ' (' + fmtR$(real - meta) + ' acima)') + (janela ? '; bateu a meta em ' + bateu + ' dos últimos ' + janela + ' meses' : '') + '.');
+    else if(mediaH != null && ref > mediaH + 5) b.fortes.push(u + ': ' + fP(ref) + ' da meta, ' + fPP(ref - mediaH) + ' acima da média histórica (' + fP(mediaH) + ').');
+    if(ref < 100){
+      b.melhorias.push(u + ': ' + fP(ating) + ' da meta (déficit de ' + fmtR$(meta - real) + ')' + (andamento ? '; ritmo atual projeta ' + fP(atingProj) : '') + (mediaH != null && ref < mediaH - 5 ? '; abaixo da média histórica (' + fP(mediaH) + ')' : '') + '.');
+      if(andamento) b.acoes.push('Faturamento ' + u + ': faltam ' + fmtR$(meta - real) + '; exige ' + fmtR$((meta - real) / restantes) + ' por semana nas ' + restantes + ' semana(s) restante(s), contra ' + fmtR$(real / feitas) + ' de média até agora. Definir responsável e ação por semana.');
+      else b.acoes.push('Faturamento ' + u + ': mês fechado ' + fmtR$(meta - real) + ' abaixo da meta. Na reunião, separar causa (volume de contratos, ticket médio ou ocupação) e fixar ação corretiva para o próximo mês.');
+    }
+  });
+  if(!algum) return null;
+  const aT = tReal / tMeta * 100;
+  b.tab.rows.push(['Total', fmtR$(tReal), fmtR$(tMeta), fP(aT), fmtR$(tProj) + ' (' + fP(tProj / tMeta * 100) + ')', '']);
+  const abaixoU = b.tab.rows.filter(r=>r[0] !== 'Total' && parseFloat(String(r[3]).replace(',', '.')) < 100).map(r=>r[0]);
+  b.leitura = 'Faturamento do grupo: ' + fmtR$(tReal) + ' de ' + fmtR$(tMeta) + ' (' + fP(aT) + ' da meta)' + (abaixoU.length ? '; unidade(s) abaixo da meta: ' + abaixoU.join(', ') + ' (o semáforo do bloco segue a pior unidade).' : '.');
+  const totH = MONTHS.map((_,i)=> i < mi ? anPct(units.reduce((s,u)=>s+(anNum(FIN.revenue[u][i])||0),0), units.reduce((s,u)=>s+(anNum(FIN.meta[u][i])||0),0)) : null).filter(x=>x !== null);
+  if(totH.length){ const mh = anAvg(totH); b.notas.push('Histórico do grupo (' + totH.length + ' meses anteriores): atingimento médio de ' + fP(mh) + '; melhor mês ' + fP(Math.max.apply(null, totH)) + ', pior mês ' + fP(Math.min.apply(null, totH)) + '.'); }
+  if(!b.fortes.length) b.fortes.push('Nenhuma unidade acima da meta neste mês; manter o acompanhamento semanal.');
+  if(!b.melhorias.length) b.melhorias.push('Todas as unidades dentro da meta; atenção apenas à sustentação do ritmo.');
+  if(!b.acoes.length) b.acoes.push('Manter o plano atual e usar o excedente para reforçar as unidades com menor histórico.');
+  return b;
+}
+
+function anInad(mi){
+  const m = MONTHS[mi];
+  const stores = Object.keys(WEEKLY_INADIMPLENCIA || {});
+  const b = anBloco('an_inad', 'financeiro', 'Inadimplência', 'Inadimplência semanal vs. meta financeira');
+  const saldo = (st, i)=>{ const w = ((WEEKLY_INADIMPLENCIA[st] || {})[MONTHS[i]] || []).map(x=>anNum(x.value)).filter(x=>x !== null); return w.length ? w[w.length-1] : null; };
+  const prevIdx = st=>{ for(let i = mi - 1; i >= 0; i--) if(saldo(st, i) != null) return i; return -1; };
+  b.tab = {head:['Loja','Saldo no fim do mês','Mês anterior','Variação'], rows:[]};
+  let tA = 0, tP = 0, tem = false;
+  stores.forEach(st=>{
+    const a = saldo(st, mi); if(a == null) return; tem = true;
+    const pi = prevIdx(st), p = pi >= 0 ? saldo(st, pi) : null;
+    const v = p ? (a - p) / p * 100 : null;
+    tA += a; if(p != null) tP += p;
+    b.tab.rows.push([st, fmtR$(a), p == null ? '—' : fmtR$(p) + ' (' + MONTHS[pi] + ')', fVar(v)]);
+    if(v != null && v <= 0) b.fortes.push(st + ': inadimplência recuou ' + fP(Math.abs(v)) + ' (' + fmtR$(p - a) + ') frente a ' + MONTHS[pi] + '.');
+    if(v != null && v > 0){ b.melhorias.push(st + ': inadimplência subiu ' + fP(v) + ' (+' + fmtR$(a - p) + ') frente a ' + MONTHS[pi] + '; saldo de ' + fmtR$(a) + '.');
+      b.acoes.push('Cobrança ' + st + ': priorizar os maiores devedores, acionar a régua de cobrança e fixar meta de redução de ' + fmtR$(a * 0.10) + ' (10% do saldo) até a próxima reunião.'); b.status = anPior(b.status, v > 10 ? 'cr' : 'at'); }
+  });
+  if(!tem) return null;
+  if(b.status === 'info') b.status = 'ok';
+  b.leitura = 'Saldo inadimplente do grupo no fim do mês: ' + fmtR$(tA) + (tP ? ' (mês anterior: ' + fmtR$(tP) + ', ' + fVar((tA - tP) / tP * 100) + ')' : '') + '.';
+  b.notas.push('Os valores de inadimplência da planilha parecem saldo acumulado, não o gerado na semana; a leitura usa o último valor apurado do mês. Confirme esse critério antes de decidir.');
+  if(!b.fortes.length) b.fortes.push('Sem redução de inadimplência no período; este é o principal ponto de atenção do caixa.');
+  if(!b.melhorias.length) b.melhorias.push('Sem alta de inadimplência frente ao mês anterior.');
+  if(!b.acoes.length) b.acoes.push('Manter a régua de cobrança vigente e acompanhar semanalmente o saldo por loja.');
+  return b;
+}
+
+function anComTopo(mi){
+  const b = anBloco('an_com_topo', 'comercial', 'Topo de funil e conversão de oportunidades', ['Topo de funil','Taxa de conversão']);
+  const g = k => (COM[k] || []);
+  const razao = (n, d)=> MONTHS.map((_,i)=> anPct(anNum(g(n)[i]), anNum(g(d)[i])));
+  const ind = [
+    {nome:'Oportunidades ganhas ÷ criadas', s:razao('oportGanhas','oportCriadas'), bom:true},
+    {nome:'Oportunidades perdidas ÷ criadas', s:razao('oportPerdidas','oportCriadas'), bom:false},
+    {nome:'Oportunidades criadas ÷ contatos', s:razao('oportCriadas','contatos'), bom:true},
+    {nome:'Contratos fechados ÷ oportunidades criadas', s:razao('contratosFechados','oportCriadas'), bom:true}
+  ];
+  b.tab = {head:['Indicador','Mês','Média histórica','Variação','Melhor mês do histórico'], rows:[]};
+  let tem = false, piora = 0;
+  ind.forEach(x=>{
+    const a = x.s[mi]; if(a == null) return; tem = true;
+    const h = anHist(x.s, mi), mh = anAvg(h);
+    const melhor = h.length ? (x.bom ? Math.max.apply(null, h) : Math.min.apply(null, h)) : null;
+    const d = mh != null ? a - mh : null;
+    b.tab.rows.push([x.nome, fP(a), fP(mh), fPP(d), fP(melhor)]);
+    if(d == null) return;
+    const melhorou = x.bom ? d >= 0 : d <= 0;
+    if(melhorou && Math.abs(d) >= 1) b.fortes.push(x.nome + ': ' + fP(a) + ', ' + fPP(d) + ' frente à média histórica (' + fP(mh) + ').');
+    if(!melhorou && Math.abs(d) >= 1){ piora++; b.melhorias.push(x.nome + ': ' + fP(a) + ', ' + fPP(d) + ' frente à média histórica (' + fP(mh) + ').'); }
+  });
+  if(!tem) return null;
+  b.status = piora >= 3 ? 'cr' : (piora >= 1 ? 'at' : 'ok');
+  const cr = anNum(g('oportCriadas')[mi]), hc = anAvg(anHist(g('oportCriadas'), mi));
+  b.leitura = 'Volume do mês: ' + fmtInt(g('contatos')[mi]) + ' contatos, ' + fmtInt(cr) + ' oportunidades criadas, ' + fmtInt(g('oportGanhas')[mi]) + ' ganhas, ' + fmtInt(g('oportPerdidas')[mi]) + ' perdidas e ' + fmtInt(g('contratosFechados')[mi]) + ' contratos fechados.';
+  if(cr != null && hc) b.notas.push('Oportunidades criadas: ' + fVar((cr - hc) / hc * 100) + ' frente à média mensal do histórico (' + fmtInt(hc) + ')' + (PARTIAL[MONTHS[mi]] ? ' — mês parcial, comparar apenas os percentuais.' : '.'));
+  const idxPerd = ind[1].s, hPerd = anAvg(anHist(idxPerd, mi));
+  if(idxPerd[mi] != null && hPerd != null && idxPerd[mi] > hPerd + 1) b.acoes.push('Perdas: a taxa de perda subiu para ' + fP(idxPerd[mi]) + '. Abrir o bloco de motivos de perda e o funil por etapa, escolher os 2 principais motivos e definir um script/ação de contorno por vendedor.');
+  const idxCont = ind[2].s, hCont = anAvg(anHist(idxCont, mi));
+  if(idxCont[mi] != null && hCont != null && idxCont[mi] < hCont - 1) b.acoes.push('Qualificação: menos contatos viram oportunidade (' + fP(idxCont[mi]) + ' contra ' + fP(hCont) + ' no histórico). Revisar o critério de qualificação e o tempo do primeiro atendimento.');
+  if(cr != null && hc && !PARTIAL[MONTHS[mi]] && cr < hc * 0.85) b.acoes.push('Demanda: oportunidades criadas ' + fP(Math.abs((cr - hc) / hc * 100)) + ' abaixo da média histórica. Reforçar geração de demanda (inbound/outbound) e prospecção de recorrência.');
+  if(!b.fortes.length) b.fortes.push('Nenhum indicador de conversão acima da média histórica neste mês.');
+  if(!b.melhorias.length) b.melhorias.push('Todos os indicadores de conversão estão em linha ou melhores que o histórico.');
+  if(!b.acoes.length) b.acoes.push('Manter a rotina comercial e acompanhar as taxas semanalmente.');
+  return b;
+}
+
+function anContratos(mi){
+  const m = MONTHS[mi];
+  const b = anBloco('an_contratos', 'comercial', 'Contratos fechados (linha leve e pesada) × meta', ['Contratos fechados']);
+  const somaV = (store, linha)=> anSum((((CONTRACTS_ACHIEVED[store] || {})[m] || {})[linha] || []).map(w=>w.value));
+  const somaC = (store, linha)=> anSum((((CONTRACTS_COUNT[store] || {})[m] || {})[linha] || []).map(w=>w.value));
+  const somaVi = (store, linha, i)=> anSum((((CONTRACTS_ACHIEVED[store] || {})[MONTHS[i]] || {})[linha] || []).map(w=>w.value));
+  const somaCi = (store, linha, i)=> anSum((((CONTRACTS_COUNT[store] || {})[MONTHS[i]] || {})[linha] || []).map(w=>w.value));
+  b.tab = {head:['Linha / loja','Fechado','Meta','Atingimento','Contratos','Ticket médio','Ticket médio histórico'], rows:[]};
+  const linhas = [];
+  ['Guarapari','Serra','Vila Velha'].forEach(st=>{
+    const mt = st === 'Guarapari' ? (CONTRACTS_META['Guarapari (leve)'] || {})[m] : (typeof comMeta === 'function' ? comMeta(st, m) : null);
+    linhas.push({nome:st + ' — leve', v:somaV(st,'leve'), c:somaC(st,'leve'), meta:mt && mt.meta, hist:i=>[somaVi(st,'leve',i), somaCi(st,'leve',i)]});
+  });
+  const pes = ['Guarapari','Serra','Vila Velha'];
+  linhas.push({nome:'Pesada (Guarapari)', v:anSum(pes.map(s=>somaV(s,'pesada'))), c:anSum(pes.map(s=>somaC(s,'pesada'))), meta:((CONTRACTS_META['Guarapari (pesada)'] || {})[m] || {}).meta,
+    hist:i=>[anSum(pes.map(s=>somaVi(s,'pesada',i))), anSum(pes.map(s=>somaCi(s,'pesada',i)))]});
+  let tem = false;
+  linhas.forEach(l=>{
+    if(!l.v && !l.c) return; tem = true;
+    const at = anNum(l.meta) ? l.v / l.meta * 100 : null;
+    const tk = l.c ? l.v / l.c : null;
+    const tks = []; for(let i = 0; i < mi; i++){ const h = l.hist(i); if(h[1]) tks.push(h[0] / h[1]); }
+    const tkh = anAvg(tks);
+    b.tab.rows.push([l.nome, fmtR$(l.v), l.meta ? fmtR$(l.meta) : '—', fP(at), fmtInt(l.c), tk != null ? fmtR$(tk) : '—', tkh != null ? fmtR$(tkh) : '—']);
+    if(at != null){
+      b.status = anPior(b.status, anStat(at));
+      if(at >= 100) b.fortes.push(l.nome + ': ' + fP(at) + ' da meta (' + fmtR$(l.v - l.meta) + ' acima).');
+      else { b.melhorias.push(l.nome + ': ' + fP(at) + ' da meta (déficit de ' + fmtR$(l.meta - l.v) + ').');
+        if(tk != null && tkh != null && tk < tkh * 0.95) b.acoes.push(l.nome + ': o ticket médio (' + fmtR$(tk) + ') está abaixo do histórico (' + fmtR$(tkh) + '). Trabalhar mix e política de preço/desconto antes de buscar apenas mais volume.');
+        else b.acoes.push(l.nome + ': ticket em linha com o histórico, então o gap é de volume. Revisar propostas em aberto e meta de contratos por vendedor.'); }
+    }
+    if(tk != null && tkh != null && tk > tkh * 1.05) b.fortes.push(l.nome + ': ticket médio ' + fmtR$(tk) + ', ' + fVar((tk - tkh) / tkh * 100) + ' acima do histórico.');
+  });
+  if(!tem) return null;
+  if(b.status === 'info') b.status = 'ok';
+  b.leitura = 'Contratos do mês, por linha e loja, contra a meta e o ticket médio histórico.';
+  if(!b.fortes.length) b.fortes.push('Nenhuma linha acima da meta neste mês.');
+  if(!b.melhorias.length) b.melhorias.push('Todas as linhas com meta cadastrada estão no alvo.');
+  if(!b.acoes.length) b.acoes.push('Manter a cadência semanal e replicar nas demais lojas as práticas da loja líder.');
+  return b;
+}
+
+function anVendedores(mi){
+  const m = MONTHS[mi], S = (SELLERS || {})[m];
+  if(!S) return null;
+  const b = anBloco('an_vendedores', 'comercial', 'Desempenho individual dos vendedores', 'Ranking de vendedores');
+  const lista = Object.keys(S).map(n=>({n, c:(S[n].contratosLeve||0) + (S[n].contratosPesada||0), v:(S[n].valorLeve||0) + (S[n].valorPesada||0), g:S[n].ganhas||0}))
+    .filter(x=>x.c > 0 || x.v > 0).sort((a,c)=>c.v - a.v);
+  if(!lista.length) return null;
+  const tot = anSum(lista.map(x=>x.v)), totC = anSum(lista.map(x=>x.c));
+  const prev = i=> (SELLERS[MONTHS[i]] || {});
+  b.tab = {head:['Vendedor','Contratos','Valor fechado','% do total','Ticket médio','Variação vs. mês anterior'], rows:[]};
+  lista.forEach(x=>{
+    const p = mi > 0 ? prev(mi - 1)[x.n] : null, pv = p ? (p.valorLeve||0) + (p.valorPesada||0) : null;
+    b.tab.rows.push([x.n, fmtInt(x.c), fmtR$(x.v), fP(x.v / tot * 100), x.c ? fmtR$(x.v / x.c) : '—', pv ? fVar((x.v - pv) / pv * 100) : '—']);
+  });
+  const top1 = lista[0], top3 = anSum(lista.slice(0,3).map(x=>x.v)) / tot * 100, med = tot / lista.length;
+  b.leitura = lista.length + ' vendedores com produção: ' + fmtInt(totC) + ' contratos e ' + fmtR$(tot) + '. Líder: ' + top1.n + ' (' + fmtR$(top1.v) + ', ' + fP(top1.v / tot * 100) + ' do total).';
+  b.fortes.push(top1.n + ' lidera com ' + fmtR$(top1.v) + ' e ' + fmtInt(top1.c) + ' contratos (' + fmtR$(top1.v / Math.max(top1.c,1)) + ' de ticket médio).');
+  const acima = lista.filter(x=>x.v >= med).length;
+  b.fortes.push(acima + ' de ' + lista.length + ' vendedores estão na média do time (' + fmtR$(med) + ') ou acima.');
+  const abaixo = lista.filter(x=>x.v < med * 0.5);
+  abaixo.forEach(x=>{ b.melhorias.push(x.n + ': ' + fmtR$(x.v) + ' (' + fP(x.v / med * 100) + ' da média do time) — abaixo de 50% da média.'); b.acoes.push('Vendedor ' + x.n + ': acompanhamento individual (funil por etapa filtrado pelo vendedor), metas semanais e apoio do líder da loja.'); });
+  if(top3 >= 60) { b.melhorias.push('Concentração: os 3 maiores vendedores respondem por ' + fP(top3) + ' do valor fechado — dependência de poucos nomes.'); b.status = anPior(b.status, 'at'); }
+  const queda = lista.filter(x=>{ const p = mi > 0 ? prev(mi-1)[x.n] : null, pv = p ? (p.valorLeve||0) + (p.valorPesada||0) : 0; return pv > 0 && x.v < pv * 0.7; });
+  queda.forEach(x=>{ b.melhorias.push(x.n + ': queda superior a 30% no valor fechado frente ao mês anterior.'); b.status = anPior(b.status, 'at'); });
+  if(abaixo.length) b.status = anPior(b.status, 'at');
+  if(b.status === 'info') b.status = 'ok';
+  b.notas.push('O ranking considera apenas contratos de quem fechou ao menos um contrato no mês; metas individuais por vendedor ficam no gráfico "Resultado semanal por loja".');
+  if(!b.melhorias.length) b.melhorias.push('Sem vendedor abaixo de 50% da média e sem queda relevante frente ao mês anterior.');
+  if(!b.acoes.length) b.acoes.push('Reconhecer os destaques e transferir as práticas do líder ao restante do time na reunião.');
+  return b;
+}
+
+function anFunilHomio(){
+  const r = (typeof funilRange === 'function') ? funilRange() : null;
+  if(!r || !FUNIL || FUNIL.ini !== r.ini || FUNIL.fim !== r.fim) return null;
+  const b = anBloco('an_funil', 'comercial', 'Funil de vendas por etapa (Homio)', 'Funil de vendas por etapa');
+  b.tab = {head:['Funil','Leads criados','Ganhos','Conversão final','Etapa com maior perda','Perdas nessa etapa'], rows:[]};
+  let tem = false;
+  FUNIL.funis.forEach(f=>{
+    const nE = f.etapas.length, A = new Array(nE).fill(0), P = new Array(nE).fill(0); let G = 0;
+    Object.keys(f.bySeller).forEach(n=>{ const x = f.bySeller[n]; for(let i=0;i<nE;i++){ A[i] += x.a[i]||0; P[i] += x.p[i]||0; } G += x.g||0; });
+    const seq = f.etapas.map((nome,i)=>({nome,i})).filter(s=>!FUNIL_FORA_FLUXO.test(s.nome));
+    const total = anSum(seq.map(s=>A[s.i] + P[s.i])) + G;
+    if(!total) return; tem = true;
+    const perd = anSum(seq.map(s=>P[s.i]));
+    const pior = seq.slice().sort((a,c)=>P[c.i] - P[a.i])[0];
+    const conv = G / total * 100;
+    b.tab.rows.push([f.nome, fmtInt(total), fmtInt(G), fP(conv), perd ? pior.nome : '—', perd ? fmtInt(P[pior.i]) + ' (' + fP(P[pior.i] / perd * 100) + ' das perdas)' : '—']);
+    if(perd && P[pior.i] / perd >= 0.35){
+      b.melhorias.push(f.nome + ': a etapa "' + pior.nome + '" concentra ' + fP(P[pior.i] / perd * 100) + ' das perdas (' + fmtInt(P[pior.i]) + ' leads).');
+      b.acoes.push(f.nome + ': atacar a etapa "' + pior.nome + '" — revisar a abordagem/cadência nessa etapa, definir prazo máximo de permanência e reativação dos leads perdidos recentes.');
+    }
+    if(conv >= 15) b.fortes.push(f.nome + ': ' + fP(conv) + ' dos leads criados no período já viraram ganho.');
+    const ult = seq.length ? seq[seq.length - 1] : null;
+    if(ult){ const chega = A[ult.i] + P[ult.i] + G; if(chega > 0 && G / chega < 0.5) b.melhorias.push(f.nome + ': só ' + fP(G / chega * 100) + ' dos leads que chegaram à última etapa fecharam — gargalo no fechamento.'); }
+  });
+  if(!tem) return null;
+  b.status = b.melhorias.length >= 2 ? 'cr' : (b.melhorias.length ? 'at' : 'ok');
+  b.leitura = 'Leads criados em ' + r.rot + ', por funil. Os filtros de loja e vendedor aplicam-se apenas ao gráfico detalhado; aqui a leitura é de todos os vendedores.';
+  b.notas.push('A API do Homio não guarda histórico de etapas: "chegou à etapa" é estimado pela etapa atual do lead. Use para direção, não para auditoria.');
+  if(!b.fortes.length) b.fortes.push('Sem funil com conversão final relevante no período; foco em avançar os leads abertos.');
+  if(!b.melhorias.length) b.melhorias.push('Nenhuma etapa concentra perda desproporcional.');
+  if(!b.acoes.length) b.acoes.push('Manter a cadência de follow-up e acompanhar o funil semanalmente.');
+  return b;
+}
+
+function anMotivos(mi){
+  if(!HOMIO || !HOMIO.months) return null;
+  const mes = HOMIO.months[MONTHS[mi]]; if(!mes) return null;
+  const cont = {};
+  mes.weeks.filter(w=>w.iniciada).forEach(w=>Object.keys(w.bySeller).forEach(n=>{ const mm = w.bySeller[n].motivos || {}; Object.keys(mm).forEach(k=>cont[k] = (cont[k]||0) + mm[k]); }));
+  const itens = Object.keys(cont).map(k=>({k, n:cont[k]})).filter(x=>x.n > 0).sort((a,c)=>c.n - a.n);
+  const tot = anSum(itens.map(x=>x.n)); if(!tot) return null;
+  const b = anBloco('an_motivos', 'comercial', 'Motivos de perda das oportunidades (Homio)', 'Motivos de perda das oportunidades');
+  b.tab = {head:['Motivo','Oportunidades perdidas','% do total'], rows:itens.slice(0,6).map(x=>[x.k, fmtInt(x.n), fP(x.n / tot * 100)])};
+  const t3 = anSum(itens.slice(0,3).map(x=>x.n)) / tot * 100;
+  b.leitura = fmtInt(tot) + ' oportunidades perdidas no mês; os 3 principais motivos somam ' + fP(t3) + '.';
+  const sem = itens.filter(x=>/sem motivo|n[aã]o mapeado/i.test(x.k)).reduce((s,x)=>s+x.n, 0);
+  const reais = itens.filter(x=>!/sem motivo|n[aã]o mapeado/i.test(x.k));
+  if(reais[0]) b.fortes.push('Principal motivo identificado: "' + reais[0].k + '" (' + fP(reais[0].n / tot * 100) + '), o que direciona a ação corretiva.');
+  if(sem / tot >= 0.2){ b.melhorias.push(fP(sem / tot * 100) + ' das perdas estão sem motivo informado/mapeado — a análise de causa perde precisão.'); b.acoes.push('Exigir o preenchimento do motivo de perda no Homio ao mover a oportunidade para "perdido" (regra de processo, com cobrança semanal por vendedor).'); b.status = 'at'; }
+  if(reais[0] && reais[0].n / tot >= 0.3){ b.melhorias.push('"' + reais[0].k + '" concentra ' + fP(reais[0].n / tot * 100) + ' das perdas.'); b.acoes.push('Plano para "' + reais[0].k + '": levantar 10 casos recentes, identificar o padrão e definir resposta comercial padrão (preço, prazo, disponibilidade ou follow-up).'); b.status = anPior(b.status, 'at'); }
+  if(b.status === 'info') b.status = 'ok';
+  if(!b.melhorias.length) b.melhorias.push('Perdas distribuídas entre vários motivos, sem concentração crítica.');
+  if(!b.acoes.length) b.acoes.push('Acompanhar mensalmente a evolução dos três principais motivos.');
+  return b;
+}
+
+function anFrota(mi){
+  const st = Object.keys((OP.fleetOccupancy) || {});
+  const b = anBloco('an_frota', 'operacional', 'Ocupação da frota (linha leve)', ['Ocupação da frota']);
+  b.tab = {head:['Loja','Ocupação no mês','Média histórica','Variação','Melhor mês'], rows:[]};
+  let tem = false;
+  st.forEach(s=>{
+    const a = anNum(OP.fleetOccupancy[s][mi]); if(a == null) return; tem = true;
+    const h = anHist(OP.fleetOccupancy[s], mi), mh = anAvg(h), d = mh != null ? a - mh : null;
+    b.tab.rows.push([s, fP(a), fP(mh), fPP(d), h.length ? fP(Math.max.apply(null, h)) : '—']);
+    if(d != null && d >= 2) b.fortes.push(s + ': ocupação de ' + fP(a) + ', ' + fPP(d) + ' acima da média histórica.');
+    if(d != null && d <= -2){ b.melhorias.push(s + ': ocupação de ' + fP(a) + ', ' + fPP(d) + ' abaixo da média histórica (' + fP(mh) + ').'); b.acoes.push('Ocupação ' + s + ': identificar máquinas paradas por categoria, avaliar remanejamento entre lojas e campanha comercial focada na frota ociosa.'); b.status = anPior(b.status, 'at'); }
+    if(a < 30){ b.melhorias.push(s + ': ocupação absoluta baixa (' + fP(a) + '): mais de 70% da frota leve está sem gerar receita.'); b.status = anPior(b.status, 'at'); }
+  });
+  if(!tem) return null;
+  if(b.status === 'info') b.status = 'ok';
+  b.leitura = 'Ocupação da frota leve por loja, comparada ao histórico próprio.';
+  b.notas.push('A ocupação vem de máquinas alugadas ÷ total da frota leve informada na planilha semanal.');
+  if(!b.fortes.length) b.fortes.push('Nenhuma loja com ocupação acima da média histórica neste mês.');
+  if(!b.melhorias.length) b.melhorias.push('Ocupação estável frente ao histórico.');
+  if(!b.acoes.length) b.acoes.push('Manter a gestão de frota e monitorar semanalmente a ocupação.');
+  return b;
+}
+
+function anManut(mi){
+  const mesCod = MONTHS[mi], idxMeta = (OP.metaMaquinasMeses || []).indexOf(mesCod);
+  const b = anBloco('an_manut', 'operacional', 'Máquinas em manutenção × meta de redução', ['Meta de redução vs. real','Máquinas em manutenção']);
+  b.tab = {head:['Loja','Real no mês','Meta','Desvio','Mês anterior'], rows:[]};
+  let tem = false;
+  Object.keys(OP.manutReal || {}).forEach(s=>{
+    const real = anNum(OP.manutReal[s][mi]); if(real == null) return; tem = true;
+    const meta = idxMeta >= 0 && OP.metaMaquinas[s] ? anNum(OP.metaMaquinas[s][idxMeta]) : null;
+    const ant = mi > 0 ? anNum(OP.manutReal[s][mi-1]) : null;
+    b.tab.rows.push([s, fmtInt(real), meta != null ? fmtInt(meta) : '—', meta ? fVar((real - meta) / meta * 100) : '—', ant != null ? fmtInt(ant) : '—']);
+    if(meta != null){
+      if(real <= meta) b.fortes.push(s + ': ' + fmtInt(real) + ' máquinas em manutenção, dentro da meta de ' + fmtInt(meta) + '.');
+      else { b.melhorias.push(s + ': ' + fmtInt(real) + ' máquinas em manutenção, ' + fmtInt(real - meta) + ' acima da meta (' + fmtInt(meta) + ').'); b.acoes.push('Manutenção ' + s + ': priorizar a liberação das ' + fmtInt(real - meta) + ' máquinas acima da meta — levantar causa (peça, mão de obra, aprovação) e fixar prazo por equipamento.'); b.status = anPior(b.status, (real - meta) / meta > 0.2 ? 'cr' : 'at'); }
+    }
+    if(ant != null && real < ant) b.fortes.push(s + ': redução de ' + fmtInt(ant - real) + ' máquinas em manutenção frente ao mês anterior.');
+  });
+  if(!tem) return null;
+  if(b.status === 'info') b.status = 'ok';
+  b.leitura = 'Máquinas em manutenção ao fim do mês contra a meta de redução (a meta começa em Mai).';
+  if(!b.fortes.length) b.fortes.push('Sem loja dentro da meta de redução neste mês.');
+  if(!b.melhorias.length) b.melhorias.push('Sem loja acima da meta de máquinas em manutenção.');
+  if(!b.acoes.length) b.acoes.push('Manter o ritmo de liberação de máquinas e a meta do próximo mês.');
+  return b;
+}
+
+function anOS(mi){
+  const os = OP.osOpened || [], mt = OP.maintenance || [];
+  const a = anNum(os[mi]); if(a == null) return null;
+  const b = anBloco('an_os', 'operacional', 'Ordens de serviço e manutenções corretivas', ['Ordens de serviço abertas','Manutenções corretivas','Visita técnica corretiva']);
+  const mh = anAvg(anHist(os, mi)), cor = anNum(mt[mi]), ch = anAvg(anHist(mt, mi));
+  const taxa = i=> anPct(anNum(mt[i]), anNum(os[i]));
+  const th = anAvg(MONTHS.map((_,i)=> i < mi ? taxa(i) : null).filter(x=>x !== null));
+  b.tab = {head:['Indicador','Mês','Média histórica','Variação'], rows:[
+    ['Ordens de serviço abertas', fmtInt(a), mh != null ? fmtInt(mh) : '—', mh ? fVar((a - mh) / mh * 100) : '—'],
+    ['Manutenções corretivas', cor != null ? fmtInt(cor) : '—', ch != null ? fmtInt(ch) : '—', cor != null && ch ? fVar((cor - ch) / ch * 100) : '—'],
+    ['Corretivas ÷ OS abertas', fP(taxa(mi)), fP(th), taxa(mi) != null && th != null ? fPP(taxa(mi) - th) : '—']]};
+  b.leitura = fmtInt(a) + ' ordens de serviço abertas' + (cor != null ? ' e ' + fmtInt(cor) + ' manutenções corretivas' : '') + ' no mês.';
+  const parcial = PARTIAL[MONTHS[mi]];
+  if(!parcial && mh && a > mh * 1.2){ b.melhorias.push('OS abertas ' + fVar((a - mh) / mh * 100) + ' acima da média histórica (' + fmtInt(mh) + ').'); b.acoes.push('Levantar as máquinas/clientes com maior recorrência de OS e tratar a causa raiz (manutenção preventiva, treinamento de uso, peça crítica).'); b.status = 'at'; }
+  if(!parcial && mh && a < mh * 0.85) b.fortes.push('OS abertas ' + fVar((a - mh) / mh * 100) + ' abaixo da média histórica — menor pressão sobre a oficina.');
+  const tm = taxa(mi);
+  if(tm != null && th != null && tm > th + 2){ b.melhorias.push('Corretivas representam ' + fP(tm) + ' das OS (histórico ' + fP(th) + '): mais quebras e menos manutenção planejada.'); b.acoes.push('Reforçar o plano de manutenção preventiva da linha leve para reduzir corretivas.'); b.status = anPior(b.status, 'at'); }
+  if(tm != null && th != null && tm < th - 2) b.fortes.push('Corretivas em ' + fP(tm) + ' das OS, abaixo do histórico (' + fP(th) + ').');
+  if(parcial) b.notas.push('Mês parcial: volumes absolutos não são comparáveis com meses fechados; considere os percentuais.');
+  if(b.status === 'info') b.status = 'ok';
+  if(!b.fortes.length) b.fortes.push('Volume de OS em linha com o histórico.');
+  if(!b.melhorias.length) b.melhorias.push('Sem desvio relevante de OS ou de corretivas frente ao histórico.');
+  if(!b.acoes.length) b.acoes.push('Manter a rotina de manutenção e acompanhar o indicador mensalmente.');
+  return b;
+}
+
+const AN_ROTULO = {ok:'No alvo', at:'Atenção', cr:'Crítico', info:'Informativo'};
+const AN_COR = {ok:'var(--green)', at:'var(--amber)', cr:'var(--red)', info:'var(--blue)'};
+function anEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function anGerar(){
+  const mi = parseInt(sel.value);
+  if(isNaN(mi) || !MONTHS[mi]) return {mi:-1, blocos:[]};
+  const fns = [['financeiro', anFinFat], ['financeiro', anInad], ['comercial', anComTopo], ['comercial', anContratos], ['comercial', anVendedores], ['comercial', anFunilHomio], ['comercial', anMotivos], ['operacional', anFrota], ['operacional', anManut], ['operacional', anOS]];
+  const blocos = [];
+  fns.forEach(([area, fn])=>{
+    if(!podeVer(area)) return;
+    try { const b = fn(mi); if(b) blocos.push(b); }
+    catch(err){ console.error('Falha ao gerar a análise (' + fn.name + '):', err); }
+  });
+  return {mi, blocos};
+}
+function anListaHtml(titulo, itens, cor){
+  return '<div class="an-col"><h4 style="color:' + cor + ';">' + titulo + '</h4><ul>' + itens.map(t=>'<li>' + anEsc(t) + '</li>').join('') + '</ul></div>';
+}
+function renderAnalise(){
+  const box = document.getElementById('analiseBox');
+  if(!box) return;
+  const {mi, blocos} = anGerar();
+  if(mi < 0){ box.innerHTML = '<div class="panel"><div class="desc">Aguardando os dados do painel…</div></div>'; return; }
+  const mes = MONTHS[mi];
+  if(!blocos.length){ box.innerHTML = '<div class="panel"><div class="desc">Sem dados suficientes para analisar ' + anEsc(mes) + '.</div></div>'; return; }
+  const cnt = {ok:0, at:0, cr:0, info:0}; blocos.forEach(b=>cnt[b.status]++);
+  const criticos = blocos.filter(b=>b.status === 'cr'), atencao = blocos.filter(b=>b.status === 'at'), verdes = blocos.filter(b=>b.status === 'ok');
+  const acoes = [];
+  criticos.concat(atencao).forEach(b=>b.acoes.filter(a=>!/^(Manter|Reconhecer|Acompanhar)/.test(a)).slice(0, 2).forEach(a=>{ if(acoes.length < 8) acoes.push({b, a}); }));
+  const hoje = new Date();
+  let html = '<div class="panel" id="anResumo">'
+    + '<h2>Resumo executivo — ' + anEsc(mes) + (PARTIAL[mes] ? ' <span class="badge partial">parcial</span>' : '') + '</h2>'
+    + '<div class="desc">Gerado automaticamente pelos dados do painel em ' + formatarDataHora(hoje) + ', comparando o mês selecionado com o histórico da Brasmetal. Apoio à decisão: confirme os pontos críticos na reunião antes de agir.</div>'
+    + '<div class="an-kpis"><div><b style="color:var(--red)">' + cnt.cr + '</b><span>críticos</span></div><div><b style="color:var(--amber)">' + cnt.at + '</b><span>em atenção</span></div><div><b style="color:var(--green)">' + cnt.ok + '</b><span>no alvo</span></div><div><b>' + blocos.length + '</b><span>indicadores analisados</span></div></div>'
+    + '<div class="an-grid">'
+    + anListaHtml('Pontos de atenção prioritários', criticos.concat(atencao).slice(0, 6).map(b=>b.titulo + ' — ' + (b.melhorias[0] || '')), 'var(--red)')
+    + anListaHtml('Principais pontos fortes', verdes.concat(atencao, criticos).filter(b=>b.fortes.length && !/^Nenhum|^Sem /.test(b.fortes[0])).slice(0, 6).map(b=>b.titulo + ' — ' + b.fortes[0]), 'var(--green)')
+    + '</div>'
+    + (acoes.length ? '<div class="an-col" style="margin-top:12px;"><h4 style="color:var(--amber);">Plano de ação sugerido para a reunião</h4><ol>' + acoes.map(x=>'<li><b>' + anEsc(x.b.titulo) + ':</b> ' + anEsc(x.a) + '</li>').join('') + '</ol></div>' : '<div class="desc" style="margin-top:12px;">Nenhum indicador em atenção ou crítico neste mês.</div>')
+    + '</div>';
+  blocos.forEach(b=>{
+    html += '<div class="panel an-bloco" id="' + b.id + '">'
+      + '<h2>' + anEsc(b.titulo) + ' <span class="an-sel" style="color:' + AN_COR[b.status] + ';border-color:' + AN_COR[b.status] + ';">' + AN_ROTULO[b.status] + '</span></h2>'
+      + '<div class="desc">' + anEsc(b.leitura || '') + '</div>'
+      + (b.tab ? '<div style="overflow-x:auto;margin-bottom:10px;"><table class="an-tab"><thead><tr>' + b.tab.head.map(h=>'<th>' + anEsc(h) + '</th>').join('') + '</tr></thead><tbody>' + b.tab.rows.map(r=>'<tr>' + r.map((c,i)=>'<td' + (i ? ' style="text-align:right;"' : '') + '>' + anEsc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>' : '')
+      + '<div class="an-grid3">' + anListaHtml('Pontos fortes', b.fortes, 'var(--green)') + anListaHtml('Pontos de melhoria', b.melhorias, 'var(--red)') + anListaHtml('Plano de ação', b.acoes, 'var(--amber)') + '</div>'
+      + (b.notas.length ? '<div class="desc" style="margin:10px 0 0;">' + b.notas.map(anEsc).join(' ') + '</div>' : '')
+      + '</div>';
+  });
+  html += '<div class="desc" style="margin-top:4px;">Critérios: semáforo verde ≥ 100% da meta, atenção de 90% a 99,9%, crítico &lt; 90% (financeiro e contratos); nos demais indicadores, o semáforo compara o mês com a média dos meses anteriores. A análise é determinística (regras fixas sobre os números do painel), não substitui o julgamento da gerência.</div>';
+  box.innerHTML = html;
+  anLigarBotoes();
+}
+// botão "Ver análise" sob o título de cada gráfico, levando ao bloco correspondente
+function anLigarBotoes(){
+  const blocos = anGerar().blocos;
+  document.querySelectorAll('.panel > h2, .panel h2').forEach(h=>{
+    if(h.closest('#tab-analise')) return;
+    const txt = h.childNodes[0] ? h.childNodes[0].textContent.trim() : '';
+    const aba = h.closest('.tab-panel') ? h.closest('.tab-panel').id.replace('tab-','') : '';
+    const alvo = blocos.find(b=>b.area === aba && [].concat(b.chartTitle || []).some(t=>txt.indexOf(t) === 0));
+    const antigo = h.querySelector('.an-link');
+    if(antigo) antigo.remove();
+    if(!alvo) return;
+    const a = document.createElement('button');
+    a.type = 'button'; a.className = 'an-link'; a.textContent = '📊 Ver análise';
+    a.addEventListener('click', ()=>{
+      document.querySelector('.tab-btn[data-tab="analise"]').click();
+      const t = document.getElementById(alvo.id); if(t) t.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+    h.appendChild(a);
+  });
+}
+
 const refreshTimers = [];
 function iniciarPainel(){
   const asof = document.getElementById('asof');
@@ -2556,7 +2990,7 @@ function iniciarPainel(){
 
 function aplicarPerfil(sess){
   const abas = sess.abas || [];
-  document.querySelectorAll('.tab-btn').forEach(b=>{ b.style.display = abas.indexOf(b.dataset.tab) === -1 ? 'none' : ''; });
+  document.querySelectorAll('.tab-btn').forEach(b=>{ b.style.display = (b.dataset.tab === 'analise' || abas.indexOf(b.dataset.tab) !== -1) ? '' : 'none'; });
   const primeira = document.querySelector('.tab-btn[data-tab="' + abas[0] + '"]');
   if(primeira) primeira.click();
   const chip = document.getElementById('userChip');
