@@ -783,7 +783,11 @@ function populateMonthSelect(){
     const idx = MONTHS.indexOf(previousName);
     sel.value = idx>=0 ? idx : MONTHS.length-1;
   } else {
-    sel.value = MONTHS.length-1;
+    // primeira abertura: mês corrente (fuso de São Paulo); se não existir nos dados, o último mês
+    const abrev = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    let mc = -1;
+    try { mc = MONTHS.indexOf(abrev[parseInt(new Date().toLocaleDateString('sv-SE', {timeZone:'America/Sao_Paulo'}).slice(5,7), 10) - 1]); } catch(e){}
+    sel.value = mc >= 0 ? mc : MONTHS.length-1;
   }
 }
 
