@@ -192,7 +192,7 @@
     <button type="button" data-per="7">7 dias</button>
     <button type="button" id="filterDataLimpar">Limpar</button>
   </div>
-  <div id="filterDataNota" style="font-size:11px;color:var(--ink-dim);line-height:1.4;">Busca direto no Homio, sem depender da planilha. Vale só para o gráfico de motivos de perda (CRM).</div>
+  <div id="filterDataNota" style="font-size:11px;color:var(--ink-dim);line-height:1.4;">Busca direto no Homio, sem depender da planilha. Vale para os gráficos do CRM: motivos de perda e funil por etapa.</div>
 </aside>
 <div class="main-content">
 
@@ -340,13 +340,23 @@
   </div>
   <div class="panel" id="panelMotivos">
     <h2>Motivos de perda das oportunidades <span class="badge forecast">Homio · ao vivo</span></h2>
-    <div class="desc">Oportunidades perdidas, por motivo registrado no CRM. Considera as oportunidades criadas no período escolhido que hoje estão com status perdido (mesmo critério da coluna Perdidas). Respeita os filtros de loja e vendedor.</div>
+    <div class="desc">Oportunidades perdidas, por motivo registrado no CRM. Considera as oportunidades que mudaram para o status perdido dentro do período escolhido (data da mudança de status, mesmo critério da coluna Perdidas), mesmo que tenham sido criadas antes. Respeita os filtros de loja e vendedor.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
       <label for="motivosSemana" style="font-size:11px;color:var(--ink-dim);">Período</label>
       <select id="motivosSemana"><option value="mes">Mês inteiro</option></select>
       <span id="motivosStatus" style="font-size:11.5px;color:var(--ink-dim);"></span>
     </div>
     <div class="chart-wrap" id="chartMotivos"></div>
+  </div>
+  <div class="panel" id="panelFunil">
+    <h2>Funil de vendas por etapa <span class="badge forecast">Homio · ao vivo</span></h2>
+    <div class="desc">Caminho dos leads em cada etapa do funil escolhido, para as oportunidades <b>criadas</b> no período (filtro de data lateral, se ativo; senão o mês selecionado até hoje). Respeita os filtros de loja e de vendedor. <b>Cumulativo</b> = % do total de leads que chegou à etapa; <b>Próxima etapa</b> = % que avançou da etapa anterior para esta; <b>Perdidas na etapa</b> = onde o lead foi marcado como perdido. A API do Homio não guarda o histórico de etapas: "chegou à etapa" é estimado pela etapa atual do lead (aberto ou perdido) e todo lead ganho conta como tendo passado por todas as etapas.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+      <label for="funilPipeline" style="font-size:11px;color:var(--ink-dim);">Funil</label>
+      <select id="funilPipeline"></select>
+      <span id="funilStatus" style="font-size:11.5px;color:var(--ink-dim);"></span>
+    </div>
+    <div id="funilBox"></div>
   </div>
   <div class="panel" style="margin-bottom:16px;">
     <h2>Ranking de vendedores</h2>
@@ -1859,7 +1869,7 @@ function aplicarFiltroData(){
   const ini = document.getElementById('filterDataIni').value;
   const fim = document.getElementById('filterDataFim').value;
   const nota = document.getElementById('filterDataNota');
-  const padrao = 'Busca direto no Homio, sem depender da planilha. Vale só para o gráfico de motivos de perda (CRM).';
+  const padrao = 'Busca direto no Homio, sem depender da planilha. Vale para os gráficos do CRM: motivos de perda e funil por etapa.';
   if(ini && fim && ini > fim){
     periodoIni = ''; periodoFim = ''; homioPerSeq++;
     nota.style.color = 'var(--amber)'; nota.textContent = 'A data final deve ser igual ou posterior à inicial.';
@@ -1867,10 +1877,10 @@ function aplicarFiltroData(){
   }
   if(ini && fim){
     periodoIni = ini; periodoFim = fim; nota.style.color = 'var(--ink-dim)';
-    nota.textContent = 'Período ativo: ' + fmtDataISO(ini) + ' a ' + fmtDataISO(fim) + '. O gráfico de motivos de perda não depende mais da planilha semanal.';
-    refreshHomioPeriodo({});
+    nota.textContent = 'Período ativo: ' + fmtDataISO(ini) + ' a ' + fmtDataISO(fim) + '. Os gráficos de motivos de perda e de funil por etapa não dependem mais da planilha semanal.';
+    refreshHomioPeriodo({}); refreshFunil({});
   } else {
-    periodoIni = ''; periodoFim = ''; homioPerSeq++; HOMIO_PER_ERRO = null;
+    periodoIni = ''; periodoFim = ''; homioPerSeq++; HOMIO_PER_ERRO = null; refreshFunil({});
     nota.style.color = 'var(--ink-dim)'; nota.textContent = (ini || fim) ? 'Preencha as duas datas (De e Até) para filtrar.' : padrao;
     renderHomio();
   }
@@ -1908,7 +1918,147 @@ async function refreshHomio(opts){
   }
 }
 
-function renderHomio(){ renderMotivos(); }
+document.getElementById('funilPipeline').addEventListener('change', ()=>renderFunil());
+function renderHomio(){ renderMotivos(); renderFunil(); }
+// ---- funil de vendas por etapa (Homio) ----
+let FUNIL = null, FUNIL_ERRO = null, funilSeq = 0, funilEmAndamento = false;
+const FUNIL_LOJAS = {'Erick':'Guarapari','Yhago':'Guarapari','Renata':'Guarapari','Camille':'Vila Velha','Maiara':'Vila Velha','Felype':'Vila Velha','Bárbara':'Serra','Lorrany':'Serra'};
+const FUNIL_FORA_FLUXO = /protelad|stand.?by/i;   // etapas que não são sequenciais (lead "geladeira")
+function funilRange(){
+  if(periodoAtivo()) return {ini:periodoIni, fim:periodoFim, rot:fmtDataISO(periodoIni)+' a '+fmtDataISO(periodoFim)};
+  const cod = String((MONTHS||[])[parseInt(sel.value)]||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+  const nomes = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  const mi = nomes.indexOf(cod.slice(0,3));
+  if(mi < 0) return null;
+  const hoje = hojeSP(), ay = parseInt(hoje.slice(0,4)), am = parseInt(hoje.slice(5,7)) - 1;
+  const y = mi > am ? ay - 1 : ay;
+  const p2 = n=>String(n).padStart(2,'0');
+  const ini = y + '-' + p2(mi+1) + '-01';
+  let fim = y + '-' + p2(mi+1) + '-' + p2(new Date(y, mi+1, 0).getDate());
+  if(fim > hoje) fim = hoje;
+  if(ini > hoje) return null;
+  return {ini, fim, rot:fmtDataISO(ini)+' a '+fmtDataISO(fim)};
+}
+function fetchHomioFunil(ini, fim, force, timeoutMs){
+  timeoutMs = timeoutMs || 120000;
+  return new Promise((resolve, reject)=>{
+    if(!APPS_SCRIPT_URL){ reject(new Error('Nenhuma URL de Apps Script configurada.')); return; }
+    const cbName = 'brasmetalHomioFunilJSONP_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+    let concluido = false;
+    const script = document.createElement('script');
+    script.id = 'jsonp-script-homio-funil';
+    function limpar(){
+      clearTimeout(timer);
+      try { delete window[cbName]; } catch(e){ window[cbName] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    const timer = setTimeout(()=>{ if(concluido) return; concluido = true; limpar(); reject(new Error('Tempo limite excedido ao consultar o funil no Homio (' + Math.round(timeoutMs/1000) + 's).')); }, timeoutMs);
+    window[cbName] = function(payload){
+      if(concluido) return; concluido = true; limpar();
+      if(!payload){ reject(new Error('O Apps Script respondeu vazio (funil).')); return; }
+      if(payload.status === 'auth'){ sessaoInvalida(payload.message); reject(new Error('Sessão encerrada.')); return; }
+      if(payload.status === 'error' || payload.status === 'forbidden'){ reject(new Error(payload.message || 'Erro desconhecido ao consultar o funil no Homio.')); return; }
+      resolve(payload);
+    };
+    const anterior = document.getElementById('jsonp-script-homio-funil');
+    if(anterior) anterior.remove();
+    const sep = APPS_SCRIPT_URL.indexOf('?') === -1 ? '?' : '&';
+    script.src = APPS_SCRIPT_URL + sep + 'action=homio_funil&ini=' + encodeURIComponent(ini) + '&fim=' + encodeURIComponent(fim) + (force ? '&force=1' : '') + '&callback=' + cbName + authQS();
+    script.onerror = function(){ if(concluido) return; concluido = true; limpar(); reject(new Error('Falha ao carregar a resposta do Apps Script (funil).')); };
+    document.head.appendChild(script);
+  });
+}
+async function refreshFunil(opts){
+  if(!perfilTemAba('comercial')) return;
+  const r = funilRange();
+  if(!r){ renderFunil(); return; }
+  const seq = ++funilSeq;
+  FUNIL_ERRO = null;
+  if(!FUNIL || FUNIL.ini !== r.ini || FUNIL.fim !== r.fim) renderFunil();
+  try{
+    const p = await fetchHomioFunil(r.ini, r.fim, !!(opts && opts.force));
+    if(seq !== funilSeq) return;
+    if(!p || !Array.isArray(p.funis)) throw new Error('O Apps Script publicado não respondeu com o funil por etapa — provavelmente ainda está na versão anterior do Code.gs. Publique a nova versão (Implantar > Gerenciar implantações > Nova versão).');
+    FUNIL = p; FUNIL_ERRO = null;
+  } catch(err){
+    if(seq !== funilSeq) return;
+    console.error('Falha ao atualizar o funil por etapa no Homio:', err);
+    FUNIL_ERRO = (err && err.message) || String(err);
+  } finally {
+    if(seq === funilSeq) renderFunil();
+  }
+}
+function renderFunil(){
+  const box = document.getElementById('funilBox');
+  if(!box) return;
+  const status = document.getElementById('funilStatus');
+  const selP = document.getElementById('funilPipeline');
+  const mostra = (txt, cor)=>{ box.innerHTML = '<div style="padding:18px;text-align:center;color:' + (cor || 'var(--ink-dim)') + ';font-size:12px;">' + txt + '</div>'; };
+  const r = funilRange();
+  if(!r){ status.textContent = ''; mostra('Período sem dados no Homio (mês futuro ou não reconhecido).'); return; }
+  const dados = (FUNIL && FUNIL.ini === r.ini && FUNIL.fim === r.fim) ? FUNIL : null;
+  status.style.color = FUNIL_ERRO ? 'var(--red)' : 'var(--ink-dim)';
+  status.textContent = FUNIL_ERRO ? ((dados ? HOMIO_MSG_FALHA : 'Não foi possível atualizar os dados. Ainda não há dados deste período.') + ' Detalhe: ' + FUNIL_ERRO)
+    : 'Leads criados em ' + r.rot + (dados ? ' · atualizado ' + formatarDataHora(new Date(dados.generatedAt)) : '');
+  if(!dados){ mostra(FUNIL_ERRO ? 'Sem dados do funil no Homio.' : 'Carregando funil de ' + r.rot + ' no Homio…', FUNIL_ERRO ? 'var(--red)' : null); return; }
+  const anterior = selP.value;
+  selP.innerHTML = dados.funis.map(f=>'<option value="' + f.chave + '">' + f.nome + '</option>').join('');
+  if(dados.funis.some(f=>f.chave === anterior)) selP.value = anterior;
+  const f = dados.funis.find(x=>x.chave === selP.value) || dados.funis[0];
+  if(!f){ mostra('Nenhum funil retornado pelo Homio.'); return; }
+
+  const lojaDe = n=> ((HOMIO && HOMIO.vendedores || []).find(v=>v.nome === n) || {}).loja || FUNIL_LOJAS[n] || null;
+  let nomes = Object.keys(f.bySeller);
+  if(selectedSeller) nomes = nomes.filter(n=>n === selectedSeller);
+  else if(selectedStore) nomes = nomes.filter(n=>lojaDe(n) === selectedStore);
+  const nE = f.etapas.length;
+  const A = new Array(nE).fill(0), P = new Array(nE).fill(0);
+  let G = 0;
+  nomes.forEach(n=>{ const b = f.bySeller[n]; for(let i=0;i<nE;i++){ A[i] += b.a[i]||0; P[i] += b.p[i]||0; } G += b.g||0; });
+  // etapas sequenciais (fora Protelado/Standby, que não são passos do caminho do lead)
+  const seq = f.etapas.map((nome,i)=>({nome,i})).filter(s=>!FUNIL_FORA_FLUXO.test(s.nome));
+  const fora = f.etapas.map((nome,i)=>({nome,i})).filter(s=>FUNIL_FORA_FLUXO.test(s.nome));
+  const chegou = seq.map((s,k)=> seq.slice(k).reduce((t,x)=>t + A[x.i] + P[x.i], 0) + G);
+  const total = chegou.length ? chegou[0] : 0;
+  const perdTot = seq.reduce((t,s)=>t + P[s.i], 0);
+  if(!total){ mostra('Nenhum lead criado no período e filtros escolhidos.', 'var(--green)'); return; }
+  const maxPerd = Math.max.apply(null, seq.map(s=>P[s.i]));
+  const pct = (a,b)=> b > 0 ? (a / b * 100).toFixed(1).replace('.', ',') + '%' : '—';
+  const cell = 'padding:6px 8px;border-bottom:1px solid var(--line, rgba(255,255,255,.08));font-size:12px;';
+  let rows = '';
+  seq.forEach((s,k)=>{
+    const w = Math.max(chegou[k] / total * 100, 1.5);
+    const lost = P[s.i];
+    const dest = lost > 0 && lost === maxPerd;
+    rows += '<tr>'
+      + '<td style="' + cell + 'white-space:nowrap;">' + s.nome + '</td>'
+      + '<td style="' + cell + 'width:42%;"><div style="background:#6a9bff;height:18px;border-radius:4px;width:' + w.toFixed(1) + '%;min-width:3px;"></div></td>'
+      + '<td style="' + cell + 'text-align:right;font-family:var(--mono);">' + fmtInt(chegou[k]) + '</td>'
+      + '<td style="' + cell + 'text-align:right;font-family:var(--mono);">' + pct(chegou[k], total) + '</td>'
+      + '<td style="' + cell + 'text-align:right;font-family:var(--mono);">' + (k === 0 ? '—' : pct(chegou[k], chegou[k-1])) + '</td>'
+      + '<td style="' + cell + 'text-align:right;font-family:var(--mono);' + (dest ? 'color:var(--red);font-weight:700;' : '') + '">' + fmtInt(lost) + (perdTot ? ' (' + pct(lost, perdTot) + ')' : '') + '</td>'
+      + '</tr>';
+  });
+  const ultimo = chegou.length ? chegou[chegou.length-1] : 0;
+  rows += '<tr>'
+    + '<td style="' + cell + 'white-space:nowrap;font-weight:700;">Ganho(a)</td>'
+    + '<td style="' + cell + 'width:42%;"><div style="background:#3ecf8e;height:18px;border-radius:4px;width:' + Math.max(G / total * 100, 1.5).toFixed(1) + '%;min-width:3px;"></div></td>'
+    + '<td style="' + cell + 'text-align:right;font-family:var(--mono);font-weight:700;">' + fmtInt(G) + '</td>'
+    + '<td style="' + cell + 'text-align:right;font-family:var(--mono);">' + pct(G, total) + '</td>'
+    + '<td style="' + cell + 'text-align:right;font-family:var(--mono);">' + pct(G, ultimo) + '</td>'
+    + '<td style="' + cell + 'text-align:right;color:var(--ink-dim);">—</td></tr>';
+  const filtro = selectedSeller ? 'vendedor ' + selectedSeller : (selectedStore ? 'loja ' + selectedStore : 'todas as lojas e vendedores');
+  const foraTxt = fora.map(s=>s.nome + ': ' + fmtInt(A[s.i]) + ' abertas, ' + fmtInt(P[s.i]) + ' perdidas').join(' · ');
+  const maiorEtapa = perdTot ? seq.filter(s=>P[s.i] === maxPerd).map(s=>s.nome).join(', ') : null;
+  box.innerHTML =
+    '<div style="font-size:12px;color:var(--ink-dim);margin-bottom:8px;">Filtro: <b>' + filtro + '</b> · Total de leads: <b>' + fmtInt(total) + '</b> · Ganhos: <b>' + fmtInt(G) + '</b> (' + pct(G, total) + ') · Perdidos nas etapas: <b>' + fmtInt(perdTot) + '</b>'
+    + (maiorEtapa ? ' · Maior perda: <b style="color:var(--red);">' + maiorEtapa + '</b>' : '') + '</div>'
+    + '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
+    + '<thead><tr style="color:var(--ink-dim);font-size:11px;text-align:left;"><th style="padding:6px 8px;">Etapa</th><th></th><th style="padding:6px 8px;text-align:right;">Leads que chegaram</th><th style="padding:6px 8px;text-align:right;">Cumulativo</th><th style="padding:6px 8px;text-align:right;">Próxima etapa</th><th style="padding:6px 8px;text-align:right;">Perdidas na etapa</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table></div>'
+    + (foraTxt ? '<div style="font-size:11px;color:var(--ink-dim);margin-top:8px;">Fora do fluxo sequencial (não entram nos percentuais) — ' + foraTxt + '.</div>' : '');
+}
+
 
 // ---- motivos de perda (Homio) — barras horizontais, ordenadas do maior para o menor ----
 function renderMotivos(){
@@ -2019,7 +2169,7 @@ function renderAll(){
   if(podeVer('operacional')){ renderOpKPIs(mi); renderFleet(mi); renderManutReal(mi); renderWeeklyOp(mi); renderManutWeekly(mi); renderCorretivas(mi); }
   if(podeVer('comercial')) renderHomio();
 }
-sel.addEventListener('change', renderAll);
+sel.addEventListener('change', ()=>{ renderAll(); refreshFunil({}); });
 
 // renderiza tudo (dependente do mês + gráficos anuais fixos) — chamado
 // toda vez que novos dados chegam do Apps Script
@@ -2355,7 +2505,7 @@ async function refreshDashboard(opts){
     if(btnAtualizar){ btnAtualizar.disabled = false; btnAtualizar.textContent = '↻ Atualizar'; }
   }
 }
-if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>{ refreshDashboard({silent:false}); if(perfilTemAba('comercial')){ refreshHomio({force:true}); refreshHomioPeriodo({force:true}); } });
+if(btnAtualizar) btnAtualizar.addEventListener('click', ()=>{ refreshDashboard({silent:false}); if(perfilTemAba('comercial')){ refreshHomio({force:true}); refreshHomioPeriodo({force:true}); refreshFunil({force:true}); } });
 
 // =================================================================
 // LOGIN / SESSÃO — validado no servidor (Apps Script). O navegador só guarda
@@ -2399,8 +2549,8 @@ function iniciarPainel(){
   refreshTimers.push(setInterval(()=>refreshDashboard({silent:true}), 30000));
   if(perfilTemAba('comercial')){
     // Homio: consulta ao abrir e a cada 5 min (o Apps Script ainda guarda o resultado por 10 min, para não sobrecarregar o CRM)
-    refreshHomio({silent:true});
-    refreshTimers.push(setInterval(()=>{ refreshHomio({silent:true}); refreshHomioPeriodo({}); }, 300000));
+    refreshHomio({silent:true}); refreshFunil({});
+    refreshTimers.push(setInterval(()=>{ refreshHomio({silent:true}); refreshHomioPeriodo({}); refreshFunil({}); }, 300000));
   }
 }
 
